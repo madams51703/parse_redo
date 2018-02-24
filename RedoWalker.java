@@ -15,6 +15,9 @@ public class RedoWalker extends RedoParserBaseListener
 	private String opcode_string;	
 	private String invalid_string="N";
 	private String media_recovery_marker_string="N";
+	private Integer redo_record_len;
+	private Integer absolute_file_number;
+
 
 	private String[][] opcode_lookup =new String [50][150];
 	
@@ -38,7 +41,6 @@ public class RedoWalker extends RedoParserBaseListener
 	@Override public void enterRedo_info(RedoParser.Redo_infoContext ctx) 
 	{ 
         /** Fill in Layer and opcode array ****/
-
 		opcode_lookup[1][1] = "KTZ ForMaT block - KTZFMT";
 		opcode_lookup[1][2] = "Transaction Z Redo Data Header - KTZRDH";
 		opcode_lookup[1][3] = "KTZ Allocate Record Callback - KTZARC";
@@ -436,7 +438,9 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLen(RedoParser.LenContext ctx) { }
+	@Override public void exitLen(RedoParser.LenContext ctx) {
+      		redo_record_len = Integer.decode(ctx.len_value().getText() );
+	}
 	/**
 	 * {@inheritDoc}
 	 *
@@ -560,17 +564,17 @@ public class RedoWalker extends RedoParserBaseListener
 	{ 
 		if ( invalid_string.equals("N") && media_recovery_marker_string.equals("N") )
 		{
-			System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)]);
+			System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}	
 
 		if (media_recovery_marker_string.equals("Y") )
 		{ 
-			System.out.println(change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)]);
+			System.out.println(change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ','  );
 		}
 
 		if (invalid_string.equals("Y") )
 		{ 
-			System.out.println(change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)]);
+			System.out.println(change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}
 
 		media_recovery_marker_string = "N";
@@ -698,7 +702,9 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitChg_afn(RedoParser.Chg_afnContext ctx) { }
+	@Override public void exitChg_afn(RedoParser.Chg_afnContext ctx) {
+          absolute_file_number = Integer.decode(ctx.afn_value().getText() ) ;
+	}
 	/**
 	 * {@inheritDoc}
 	 *
