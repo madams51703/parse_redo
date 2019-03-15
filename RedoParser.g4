@@ -12,7 +12,7 @@ redo_info
     ;
 
 redo_record
-    : REDO RECORD MINUS thread rba len vld scn subscn date_value
+    : REDO RECORD MINUS thread rba len vld con_uid? scn subscn date_value
     ;
 
 change_records
@@ -60,7 +60,7 @@ vld_value
     ;
 
 scn
-    : SCN ':' wrap DOT base
+    : SCN ':' wrap (DOT base)?
     ;
 
 wrap
@@ -84,10 +84,10 @@ date_value
     ;
 
 change
-    : CHANGE  ( change_number chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl
-              | change_number media_recovery_marker scn seq layer_opcode enc
-              | change_number invld chg_afn dba blks chg_obj scn seq layer_opcode enc
+    : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
+                               scn seq layer_opcode enc rbl flg?
+              | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg?
+              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc
               )
     ;
 
@@ -186,4 +186,27 @@ rbl_value
     : HEX
     ;
 
+flg
+    : FLG ':' flg_value
+    ;
+
+flg_value
+    : HEX
+    ;
+
+con_id
+    : CON_ID ':' con_id_value
+    ;
+
+con_id_value
+    : HEX
+    ;
+
+con_uid
+    : CON_UID ':' con_uid_value
+    ;
+
+con_uid_value
+    : HEX
+    ;
 
