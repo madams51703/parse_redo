@@ -85,9 +85,9 @@ date_value
 
 change
     : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg?
-              | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg?
-              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc
+                               scn seq layer_opcode enc rbl flg? xid?
+              | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
+              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc xid?
               )
     ;
 
@@ -156,6 +156,14 @@ seq
 
 seq_value
     : HEX
+    ;
+
+xid
+    : XID ':' xid_value
+    ;
+
+xid_value
+    : HEX '.' HEX '.' HEX
     ;
 
 layer_opcode
