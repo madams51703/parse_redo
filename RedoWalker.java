@@ -17,15 +17,52 @@ public class RedoWalker extends RedoParserBaseListener
 	private String media_recovery_marker_string="N";
 	private Integer redo_record_len;
 	private Integer absolute_file_number;
-
-
+	private String transaction_id;
+        private String the_output[] = new String[30000] ;
+	private Integer the_output_count = -1;
 	private String[][] opcode_lookup =new String [50][150];
-	
+        	
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterXid(RedoParser.XidContext ctx) { }
+        /**
+         * {@inheritDoc}
+         *
+         * <p>The default implementation does nothing.</p>
+         */
+        @Override public void exitXid(RedoParser.XidContext ctx) 
+	{ 
+	        for(int i=0; i<=the_output_count; i++){
+      			System.out.println( ctx.xid_value().getText() + "," + the_output[i] ) ;
+         		}	
+      			the_output_count = -1;	
+	}
+        /**
+         * {@inheritDoc}
+         *
+         * <p>The default implementation does nothing.</p>
+         */
+        @Override public void enterXid_value(RedoParser.Xid_valueContext ctx) 
+	{
+       	}
+        /**
+         * {@inheritDoc}
+         *
+         * <p>The default implementation does nothing.</p>
+         */
+        @Override public void exitXid_value(RedoParser.Xid_valueContext ctx)
+       	{
+	}
+        /**
+         * {@inheritDoc}
+         *
+         * <p>The default implementation does nothing.</p>
+         */
+
+
 	@Override public void enterRedo_file(RedoParser.Redo_fileContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -38,6 +75,7 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+
 	@Override public void enterRedo_info(RedoParser.Redo_infoContext ctx) 
 	{ 
         /** Fill in Layer and opcode array ****/
@@ -564,17 +602,25 @@ public class RedoWalker extends RedoParserBaseListener
 	{ 
 		if ( invalid_string.equals("N") && media_recovery_marker_string.equals("N") )
 		{
-			System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
+			the_output_count ++;
+			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) ;
+
+			// System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}	
 
 		if (media_recovery_marker_string.equals("Y") )
-		{ 
-			System.out.println(change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ','  );
+		{
+			the_output_count ++;
+
+			the_output[the_output_count] = change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len)   ;
+			// System.out.println(change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ','  );
 		}
 
 		if (invalid_string.equals("Y") )
 		{ 
-			System.out.println(change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) );
+			the_output_count ++;
+			the_output[the_output_count] = change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) ;
+//			System.out.println(change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}
 
 		media_recovery_marker_string = "N";
