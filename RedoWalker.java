@@ -17,11 +17,12 @@ public class RedoWalker extends RedoParserBaseListener
 	private String media_recovery_marker_string="N";
 	private Integer redo_record_len;
 	private Integer absolute_file_number;
+	private String block_class ;
 	private String transaction_id;
         private String the_output[] = new String[30000] ;
 	private Integer the_output_count = -1;
 	private String[][] opcode_lookup =new String [50][150];
-        	
+        private String[] block_classes = {"","Data Block","Sort Block","Defered Undo Segment Blocks","Segment Header Block(Table)","Deferred Undo Segment Header Blocks","Free List Blocks","Extent Map Blocks","Space Management Bitmap Blocks","Space Managment Index Blocks","Unused"};
 	/**
 	 * {@inheritDoc}
 	 *
@@ -603,7 +604,7 @@ public class RedoWalker extends RedoParserBaseListener
 		if ( invalid_string.equals("N") && media_recovery_marker_string.equals("N") )
 		{
 			the_output_count ++;
-			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) ;
+			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) + ',' + block_class ;
 
 			// System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}	
@@ -724,7 +725,19 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitChg_class(RedoParser.Chg_classContext ctx) { }
+	@Override public void exitChg_class(RedoParser.Chg_classContext ctx) 
+	{ 
+          	if ( Integer.decode(ctx.chg_class_value().getText() )   <= 10 )
+	  	{
+			block_class = block_classes[Integer.decode(ctx.chg_class_value().getText() ) ];
+		}
+		else
+		{
+			block_class = "UNDO";
+		}	
+		
+		
+	}
 	/**
 	 * {@inheritDoc}
 	 *
