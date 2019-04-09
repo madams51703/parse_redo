@@ -8,11 +8,15 @@ import java.util.ArrayList;
 public class RedoWalker extends RedoParserBaseListener
 {
 
+	private Double rollback_seg_number;	
 	private String change_date;
+	private Long block;
+	private String block_str;
         private String layer_opcode_string;
 	private String data_object_id_string;
         private String layer_string;
 	private String opcode_string;	
+	private String dba;
 	private String invalid_string="N";
 	private String media_recovery_marker_string="N";
 	private Integer redo_record_len;
@@ -22,7 +26,7 @@ public class RedoWalker extends RedoParserBaseListener
         private String the_output[] = new String[30000] ;
 	private Integer the_output_count = -1;
 	private String[][] opcode_lookup =new String [50][150];
-        private String[] block_classes = {"","Data Block","Sort Block","Defered Undo Segment Blocks","Segment Header Block(Table)","Deferred Undo Segment Header Blocks","Free List Blocks","Extent Map Blocks","Space Management Bitmap Blocks","Space Managment Index Blocks","Unused"};
+        private String[] block_classes = {"","Data Block","Sort Block","Defered Undo Segment Blocks","Segment Header Block(Table)","Deferred Undo Segment Header Blocks","Free List Blocks","Extent Map Blocks","Space Management Bitmap Blocks","1st level bmb","second level bmb","3rd level bmb","Bitmap Block","Bitmap index  block","File Header Block","Unused","System Undo Header","System Undo Block","Undo Header","Undo Block"};
 	/**
 	 * {@inheritDoc}
 	 *
@@ -604,7 +608,7 @@ public class RedoWalker extends RedoParserBaseListener
 		if ( invalid_string.equals("N") && media_recovery_marker_string.equals("N") )
 		{
 			the_output_count ++;
-			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) + ',' + block_class ;
+			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + ',' + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
 
 			// System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}	
@@ -613,14 +617,14 @@ public class RedoWalker extends RedoParserBaseListener
 		{
 			the_output_count ++;
 
-			the_output[the_output_count] = change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len)   ;
+			the_output[the_output_count] = change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len)  ;
 			// System.out.println(change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ','  );
 		}
 
 		if (invalid_string.equals("Y") )
 		{ 
 			the_output_count ++;
-			the_output[the_output_count] = change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) ;
+			the_output[the_output_count] = change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
 //			System.out.println(change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}
 
@@ -727,13 +731,23 @@ public class RedoWalker extends RedoParserBaseListener
 	 */
 	@Override public void exitChg_class(RedoParser.Chg_classContext ctx) 
 	{ 
-          	if ( Integer.decode(ctx.chg_class_value().getText() )   <= 10 )
+          	if ( Integer.decode(ctx.chg_class_value().getText() )   < 17 )
 	  	{
 			block_class = block_classes[Integer.decode(ctx.chg_class_value().getText() ) ];
 		}
-		else
+		else if ( Integer.decode(ctx.chg_class_value().getText() )   >= 17 )
 		{
-			block_class = "UNDO";
+			rollback_seg_number = Math.floor(Integer.decode(ctx.chg_class_value().getText() )  - 17 ) ;
+			if ( 	Integer.decode(ctx.chg_class_value().getText() ) % 2 == 0)
+			{
+				block_class = "UNDO SEGMENT " + rollback_seg_number.toString()   + " HEADER" ;
+			}
+			else
+			{
+				block_class = "UNDO SEGMENT " + rollback_seg_number.toString()   + " BLOCK" ;
+
+			}
+
 		}	
 		
 		
@@ -778,7 +792,7 @@ public class RedoWalker extends RedoParserBaseListener
 	@Override public void exitAfn_value(RedoParser.Afn_valueContext ctx) { }
 	/**
 	 * {@inheritDoc}
-	 *
+	 
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void enterDba(RedoParser.DbaContext ctx) { }
@@ -787,7 +801,10 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitDba(RedoParser.DbaContext ctx) { }
+	@Override public void exitDba(RedoParser.DbaContext ctx) {
+		block_str =ctx.dba_value().getText();
+		block = Long.parseLong( block_str.substring(3) ,16) & 4194303L;
+       	}
 	/**
 	 * {@inheritDoc}
 	 *
@@ -799,7 +816,9 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitDba_value(RedoParser.Dba_valueContext ctx) { }
+	@Override public void exitDba_value(RedoParser.Dba_valueContext ctx) 
+	{
+	}
 	/**
 	 * {@inheritDoc}
 	 *
