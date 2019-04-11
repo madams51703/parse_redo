@@ -12,7 +12,11 @@ redo_record_info
     ;
 
 redo_info
-    : ktudb_redo
+    :
+      ktelk_redo
+    | ktecush_redo
+    | ktucm_redo
+    | ktudb_redo
     | ktudh_redo
     | ktudbu_redo
     ;
@@ -91,11 +95,71 @@ date_value
 
 change
     : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? redo_info? xid?
+                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktsfrgrp_redo?
               | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
-              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid?
+              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktsfrgrp_redo?
               )
     ;
+
+ktucm_redo
+    : KTUCM REDO ':' slt sqn srt sta flg ktucf_redo?
+    ;
+
+ktucf_redo
+    : KTUCF REDO ':' uba ext spc fbi
+    ;
+
+ext
+    : EXT ':' ext_value
+    ;
+
+ext_value
+    : HEX
+    ;
+
+uba
+    : UBA ':' uba_value
+    ;
+
+uba_value
+    : HEX '.' HEX '.' HEX
+    ;
+
+sta
+    : STA ':' sta_value
+    ;
+
+sta_value
+    : HEX
+    ;
+
+srt
+   : SRT ':' srt_value
+   ;
+
+srt_value
+   : HEX
+   ;
+
+ktecush_redo
+    : KTECUSH REDO ':' CLEAR EXTENT CONTROL LOCK
+    ;    
+
+ktsfrgrp_redo
+    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':'
+    ;
+
+ktubl_redo
+   : KTUBL REDO ':' slt rci opc LSQUARE objn objd tsn RSQUARE
+   ;
+
+ktelk_redo
+   : KTELK REDO ':' xid
+   ; 
+
+ktudb_redo
+   : KTUDB REDO ':' siz spc flg seq rec
+   ;
 
 ktudbu_redo
     : KTUDBU REDO ':' slt rci opc objn objd tsn
@@ -163,9 +227,6 @@ sqn_value
     : HEX
     ;
 
-ktudb_redo
-    : KTUDB REDO ':' siz spc  flg seq  rec
-    ;
 
 spc
     : SPC ':' spc_value
