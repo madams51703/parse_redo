@@ -4,11 +4,17 @@ options { tokenVocab=RedoLexer; }
 
 
 redo_file
-    : redo_info* EOF
+    : redo_record_info* EOF
+    ;
+
+redo_record_info
+    : redo_record change_records+ 
     ;
 
 redo_info
-    : redo_record change_records
+    : ktudb_redo
+    | ktudh_redo
+    | ktudbu_redo
     ;
 
 redo_record
@@ -85,11 +91,114 @@ date_value
 
 change
     : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? xid?
+                               scn seq layer_opcode enc rbl flg? redo_info? xid?
               | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
-              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc xid?
+              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid?
               )
     ;
+
+ktudbu_redo
+    : KTUDBU REDO ':' slt rci opc objn objd tsn
+    ;
+
+objn
+    : OBJN ':' objn_value
+    ;
+
+objn_value
+    : HEX
+    ;
+
+objd
+   : OBJD ':' objd_value
+   ;
+
+objd_value
+   : HEX
+   ;
+
+tsn
+   : TSN ':' tsn_value
+   ;
+
+tsn_value
+   : HEX
+   ;
+
+
+opc
+    : OPC ':'  opc_value
+    ;
+
+opc_value
+    : HEX '.' HEX
+    ;
+
+
+ktudh_redo
+    : KTUDH REDO ':' slt sqn flg siz fbi
+    ;
+
+fbi
+   : FBI ':' fbi_value
+   ;
+
+fbi_value
+   : HEX
+   ;
+
+siz
+    : SIZ ':' siz_value
+    ;
+
+siz_value
+    : HEX
+    ;
+
+sqn
+    : SQN ':' sqn_value
+    ;
+
+sqn_value
+    : HEX
+    ;
+
+ktudb_redo
+    : KTUDB REDO ':' siz spc  flg seq  rec
+    ;
+
+spc
+    : SPC ':' spc_value
+    ;
+
+spc_value
+    : HEX
+    ;
+
+rec
+    : REC ':' rec_value
+    ;
+
+rec_value
+    : HEX
+    ;    
+
+rci
+    : RCI ':' rci_value
+    ;
+
+rci_value
+    : HEX
+    ;
+
+
+slt
+   : SLT ':' slt_value
+   ;
+
+slt_value
+   :  HEX
+   ;
 
 invld
    : INVLD
