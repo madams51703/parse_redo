@@ -95,12 +95,58 @@ date_value
 
 change
     : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktsfrgrp_redo?
+                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo?
               | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
-              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktsfrgrp_redo?
+              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo?
               )
     ;
 
+ktsfrbfmt_redo
+    : KTSFRBFMT REDO ':' segobjd type itls cscn
+    ;
+
+cscn
+    : CSCN ':' cscn_value
+    ;
+
+cscn_value
+    : HEX 
+    ;
+
+itls
+    : ITLS ':' itls_value
+    ;
+ 
+itls_value
+    : HEX
+    ;
+
+type
+    : TYPE ':' type_value
+    ;
+
+type_value
+    : HEX
+    ;
+
+segobjd
+    : SEGOBJD ':' segobjd_value
+    ;
+
+segobjd_value
+    : HEX
+    ;
+
+
+ktsfrblnk_redo
+    : KTSFRBLNK REDO ':' OPCODE ':' ktsfrblnk_redo_opcode
+    ;
+
+ktsfrblnk_redo_opcode
+    : LWRT
+    | LSET
+    ;
+ 
 ktucm_redo
     : KTUCM REDO ':' slt sqn srt sta flg ktucf_redo?
     ;
@@ -151,6 +197,10 @@ ktsfrgrp_redo
 
 ktubl_redo
    : KTUBL REDO ':' slt rci opc LSQUARE objn objd tsn RSQUARE
+   ;
+
+ktubu_redo
+   : KTUBU REDO ':' slt rci opc objn objd tsn 
    ;
 
 ktelk_redo
