@@ -4,7 +4,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
-
+import java.text.NumberFormat;
 public class RedoWalker extends RedoParserBaseListener
 {
 
@@ -68,21 +68,9 @@ public class RedoWalker extends RedoParserBaseListener
          */
 
 
-	@Override public void enterRedo_file(RedoParser.Redo_fileContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitRedo_file(RedoParser.Redo_fileContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
+	@Override public void enterRedo_file(RedoParser.Redo_fileContext ctx) 
+	{
 
-	@Override public void enterRedo_info(RedoParser.Redo_infoContext ctx) 
-	{ 
         /** Fill in Layer and opcode array ****/
 		opcode_lookup[1][1] = "KTZ ForMaT block - KTZFMT";
 		opcode_lookup[1][2] = "Transaction Z Redo Data Header - KTZRDH";
@@ -364,6 +352,21 @@ public class RedoWalker extends RedoParserBaseListener
 		opcode_lookup[26][6] = "direct lob direct-load redo - KDLIRBIMG";
 		opcode_lookup[26][7] = "dummy calibration redo - KDLIRCALI";
 		opcode_lookup[27][1] = "op-code for bitmap switch - KRCPBSW";
+       	}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRedo_file(RedoParser.Redo_fileContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+
+	@Override public void enterRedo_info(RedoParser.Redo_infoContext ctx) 
+	{ 
 	}
 	/**
 	 * {@inheritDoc}
@@ -605,8 +608,14 @@ public class RedoWalker extends RedoParserBaseListener
 	 */
 	@Override public void exitChange(RedoParser.ChangeContext ctx) 
 	{ 
+		if ( opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] == null )
+		{
+			System.out.println("opcode_lookup:>>" + layer_string + "<<>>" + opcode_string +"<<");
+		}
+
 		if ( invalid_string.equals("N") && media_recovery_marker_string.equals("N") )
 		{
+	
 			the_output_count ++;
 			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + ',' + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
 
