@@ -95,9 +95,9 @@ date_value
 
 change
     : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo?
+                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo? block_cleanout_record? column_info?
               | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
-              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo?
+              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? block_cleanout_record? column_info?
               )
     ;
 
@@ -438,3 +438,58 @@ con_uid_value
     : HEX
     ;
 
+column_info
+    : column_info_detail+
+    ;
+column_info_detail
+    : COL column_number ':' column_datatype? column_value
+    ;
+
+column_datatype
+    : '[' HEX ']'
+    ;
+
+column_number
+    : HEX
+    ; 
+
+column_value
+    : HEX+
+    | NULL_COLUMN_VALUE 
+    ;
+
+block_cleanout_record
+    : BLOCK CLEANOUT RECORD COMMA scn ver opt bigscn compact spare COMMA ENTRIES FOLLOW DOT DOT DOT
+    ;
+
+opt
+    : OPT ':' opt_value
+    ;
+
+opt_value
+    : HEX
+    ;
+
+ver
+    : VER ':' ver_value
+    ;
+
+ver_value
+    : HEX
+    ;
+ 
+bigscn
+    : BIGSCN ':' (Y|N)
+    ;
+
+compact:
+    COMPACT (Y|N)
+    ;
+
+spare
+    : SPARE ':' spare_value
+    ;
+
+spare_value
+    : HEX
+    ;

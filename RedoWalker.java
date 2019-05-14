@@ -22,8 +22,11 @@ public class RedoWalker extends RedoParserBaseListener
 	private Integer redo_record_len;
 	private Integer absolute_file_number;
 	private String block_class ;
+	private Integer starting_output=-1;
 	private String transaction_id;
         private String the_output[] = new String[30000] ;
+	private String change_columns = new String();
+	private Integer found_columns = -1;
 	private Integer the_output_count = -1;
 	private String[][] opcode_lookup =new String [50][150];
         private String[] block_classes = {"","Data Block","Sort Block","Defered Undo Segment Blocks","Segment Header Block(Table)","Deferred Undo Segment Header Blocks","Free List Blocks","Extent Map Blocks","Space Management Bitmap Blocks","1st level bmb","second level bmb","3rd level bmb","Bitmap Block","Bitmap index  block","File Header Block","Unused","System Undo Header","System Undo Block","Undo Header","Undo Block"};
@@ -40,6 +43,11 @@ public class RedoWalker extends RedoParserBaseListener
          */
         @Override public void exitXid(RedoParser.XidContext ctx) 
 	{ 
+		if ( starting_output == -1 ) 
+		{
+			System.out.println("Transaction ID,Change Date,Data Object Id,Opcode(Major.Minor),Opcode Description,Redo Record Size,Block Class,Absolute File Number,Block Number,Columns Changed ");
+			starting_output  =  0;
+		}	
 	        for(int i=0; i<=the_output_count; i++){
       			System.out.println( ctx.xid_value().getText() + "," + the_output[i] ) ;
          		}	
@@ -384,10 +392,17 @@ public class RedoWalker extends RedoParserBaseListener
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
-	 */
+	 *
 	@Override public void exitRedo_record(RedoParser.Redo_recordContext ctx) 
-	{
-		change_date = ctx.date_value().getText();  ;
+	{	
+		if ( ctx.date_value().getText() != null )
+		{
+			change_date = ctx.date_value().getText() ;
+		}
+		else
+		{
+			change_date = "NULL";
+		}
 	}
 	/**
 	 * {@inheritDoc}
@@ -637,6 +652,11 @@ public class RedoWalker extends RedoParserBaseListener
 //			System.out.println(change_date + ',' + "INVALID" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}
 
+		if (found_columns >  -1 )
+		{
+			the_output[the_output_count] = the_output[the_output_count] + change_columns;
+			found_columns = -1;
+		}
 		media_recovery_marker_string = "N";
 		invalid_string = "N";
 	}
@@ -968,6 +988,71 @@ public class RedoWalker extends RedoParserBaseListener
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitRbl_value(RedoParser.Rbl_valueContext ctx) { }
+
+	@Override public void enterColumn_info(RedoParser.Column_infoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitColumn_info(RedoParser.Column_infoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterColumn_info_detail(RedoParser.Column_info_detailContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitColumn_info_detail(RedoParser.Column_info_detailContext ctx) 
+	{
+		if (found_columns == -1 )
+		{
+			change_columns="";
+		}
+		change_columns = change_columns +',' +  ctx.column_number().getText();
+		found_columns++;
+       	}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterColumn_datatype(RedoParser.Column_datatypeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitColumn_datatype(RedoParser.Column_datatypeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterColumn_number(RedoParser.Column_numberContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitColumn_number(RedoParser.Column_numberContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterColumn_value(RedoParser.Column_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitColumn_value(RedoParser.Column_valueContext ctx) {
+       	}
 
 	/**
 	 * {@inheritDoc}
