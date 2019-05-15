@@ -28,12 +28,13 @@ while getopts "e:s:i:a:o:x:" o; do
             		START_DATE_TIME=${OPTARG}
 			START_DAY=`date -d "${START_DATE_TIME}" +%d`
 			START_MONTH=`date -d "${START_DATE_TIME}" +%m`
+			START_MONTH=$(echo $START_MONTH | sed 's/^0*//')
 			START_YEAR=`date -d "${START_DATE_TIME}" +%Y`
 			START_HOUR=`date -d "${START_DATE_TIME}" +%H`
 			START_MINUTE=`date -d "${START_DATE_TIME}" +%M`
 			START_SECONDS=`date -d "${START_DATE_TIME}" +%S`
-			START_TIME=$(( (((((${START_YEAR} - 1988 )*12) + ( ${START_MONTH}-1))*31  +  ( ${START_DAY} - 1) ) *24   +  ${START_HOUR} ) *60  + ( ${START_MINUTE} * 60 ) + ( ${START_SECONDS} )    ))
-			LOGFILEOPTIONS="${LOGFILEOPTIONS} MIN TIME ${START_TIME} " 
+			START_TIME=$(( (((((${START_YEAR} - 1988) * 12 + ${START_MONTH} - 1) * 31 + ${START_DAY} - 1) * 24 + ${START_HOUR}) * 60 + ${START_MINUTE}) * 60 + ${START_SECONDS} ))
+			LOGFILEOPTIONS="${LOGFILEOPTIONS} TIME MIN ${START_TIME} " 
 			
 		;;
 
@@ -45,10 +46,12 @@ while getopts "e:s:i:a:o:x:" o; do
 			END_HOUR=`date -d "${END_DATE_TIME}" +%H`
 			END_MINUTE=`date -d "${END_DATE_TIME}" +%M`
 			END_SECONDS=`date -d "${END_DATE_TIME}" +%S`
-			END_TIME=$(( (((((${END_YEAR} - 1988 )*12) + ( ${END_MONTH}-1))*31  +  ( ${END_DAY} - 1) ) *24   +  ${END_HOUR} ) *60  + ( ${END_MINUTE} * 60 ) + ( ${END_SECONDS} )    ))
+			END_MONTH=$(echo $END_MONTH | sed 's/^0*//')
+			END_TIME=$(( (((((${END_YEAR} - 1988) * 12 + ${END_MONTH} - 1) * 31 + ${END_DAY} - 1) * 24 + ${END_HOUR}) * 60 + ${END_MINUTE}) * 60 + ${END_SECONDS} ))
+
+echo $time
 			
-			
-			LOGFILEOPTIONS="${LOGFILEOPTIONS} MAX TIME ${END_TIME} " 
+			LOGFILEOPTIONS="${LOGFILEOPTIONS} TIME MAX ${END_TIME} " 
 		;; 
 
 		a)
@@ -68,12 +71,13 @@ if [ "${ARCHIVEDLOGNUM}" = "" ] ; then
 	echo "alter system dump logfile '$L' ${LOGFILEOPTIONS} ;"  >> trace.sql
 else
 B=`dirname ${L}` 
-C=`ls -1 ${B}/*${ARCHIVEDLOGNUM}*`
+C=`ls -1 ${B}/*$arch1_${ARCHIVEDLOGNUM}_*`
 	echo "alter system dump logfile '${C}' ${LOGFILEOPTIONS}  ;" >> trace.sql
 fi
 echo "quit "  >> trace.sql
 sqlplus -s / as sysdba @trace.sql
 set -x
 #egrep "REDO RECORD|CHANGE|^SCN|^col|redo:|^Block cleanout record|      xid" /opt/oracle/diag/rdbms/xe/XE/trace/*${TRACEFILEID}*.trc  > ${TRACEFILEID}.input
-egrep "REDO RECORD|CHANGE|^SCN|redo:|^Block cleanout record|      xid" /opt/oracle/diag/rdbms/xe/XE/trace/*${TRACEFILEID}*.trc  > ${TRACEFILEID}.input
+#egrep "REDO RECORD|CHANGE|^SCN|redo:|^Block cleanout record|      xid" /opt/oracle/diag/rdbms/xe/XE/trace/*${TRACEFILEID}*.trc  > ${TRACEFILEID}.input
+egrep "REDO RECORD|CHANGE|^SCN|redo:|      xid" /opt/oracle/diag/rdbms/xe/XE/trace/*${TRACEFILEID}*.trc  > ${TRACEFILEID}.input
 ./parse_redo.sh ${TRACEFILEID}.input >${TRACEFILEID}.output

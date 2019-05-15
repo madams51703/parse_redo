@@ -1,6 +1,8 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.atn.ATNSimulator;
+import org.antlr.v4.runtime.atn.ParserATNSimulator;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -387,7 +389,19 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterRedo_record(RedoParser.Redo_recordContext ctx) { }
+	@Override public void enterRedo_record(RedoParser.Redo_recordContext ctx) 
+	{
+              if ( ctx.date_value().getText() != null )
+                {
+                        change_date = ctx.date_value().getText() ;
+
+                }
+                else
+                {
+                        change_date = "NULL";
+                }
+ 
+	}
 	/**
 	 * {@inheritDoc}
 	 *
@@ -395,14 +409,6 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	@Override public void exitRedo_record(RedoParser.Redo_recordContext ctx) 
 	{	
-		if ( ctx.date_value().getText() != null )
-		{
-			change_date = ctx.date_value().getText() ;
-		}
-		else
-		{
-			change_date = "NULL";
-		}
 	}
 	/**
 	 * {@inheritDoc}

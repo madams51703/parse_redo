@@ -94,10 +94,10 @@ date_value
     ;
 
 change
-    : CHANGE  ( change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo? block_cleanout_record? column_info?
-              | change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
-              | change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? block_cleanout_record? column_info?
+    : lfdba? CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj 
+                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
+              |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
+              |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
               )
     ;
 
@@ -121,6 +121,14 @@ itls_value
     : HEX
     ;
 
+typ
+    : TYP ':' typ_value
+    ;
+
+typ_value
+    : HEX
+    ;
+
 type
     : TYPE ':' type_value
     ;
@@ -137,6 +145,17 @@ segobjd_value
     : HEX
     ;
 
+ktsfm_redo
+    : KTSFM REDO ':' dba tsn obj typ nfl
+    ;
+
+nfl
+    : NFL ':' nfl_value
+    ;
+
+nfl_value
+    : HEX
+    ;
 
 ktsfrblnk_redo
     : KTSFRBLNK REDO ':' OPCODE ':' ktsfrblnk_redo_opcode
@@ -145,6 +164,7 @@ ktsfrblnk_redo
 ktsfrblnk_redo_opcode
     : LWRT
     | LSET
+    | LCLR
     ;
  
 ktucm_redo
@@ -214,6 +234,11 @@ ktudb_redo
 ktudbu_redo
     : KTUDBU REDO ':' slt rci opc objn objd tsn
     ;
+
+obj
+    : OBJ ':' obj_value
+    ;
+
 
 objn
     : OBJN ':' objn_value
@@ -493,3 +518,12 @@ spare
 spare_value
     : HEX
     ;
+
+lfdba
+    : LFDBA ':' lfdba_value
+    ;
+
+lfdba_value
+    : HEX
+    ;
+
