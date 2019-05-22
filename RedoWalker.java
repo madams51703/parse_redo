@@ -19,6 +19,8 @@ public class RedoWalker extends RedoParserBaseListener
         private String layer_string;
 	private String opcode_string;	
 	private String dba;
+	private String objd;
+	private String objn;
 	private String invalid_string="N";
 	private String media_recovery_marker_string="N";
 	private Integer redo_record_len;
@@ -621,7 +623,10 @@ public class RedoWalker extends RedoParserBaseListener
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterChange(RedoParser.ChangeContext ctx) { }
+	@Override public void enterChange(RedoParser.ChangeContext ctx) 
+	{
+      		objd = null; 
+	}
 	/**
 	 * {@inheritDoc}
 	 *
@@ -638,7 +643,14 @@ public class RedoWalker extends RedoParserBaseListener
 		{
 	
 			the_output_count ++;
+			if ( objd != null )
+			{
+			the_output[the_output_count] = change_date + ',' + data_object_id_string + '(' + objd + ')' + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + ',' + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
+			}
+			else
+			{
 			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + ',' + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
+			}
 
 			// System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
 		}	
@@ -1060,6 +1072,91 @@ public class RedoWalker extends RedoParserBaseListener
 	@Override public void exitColumn_value(RedoParser.Column_valueContext ctx) {
        	}
 
+	@Override public void enterKtudb_redo(RedoParser.Ktudb_redoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitKtudb_redo(RedoParser.Ktudb_redoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterKtudbu_redo(RedoParser.Ktudbu_redoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitKtudbu_redo(RedoParser.Ktudbu_redoContext ctx) 
+	{ 
+	}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterObj(RedoParser.ObjContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitObj(RedoParser.ObjContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterObjn(RedoParser.ObjnContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitObjn(RedoParser.ObjnContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterObjn_value(RedoParser.Objn_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitObjn_value(RedoParser.Objn_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterObjd(RedoParser.ObjdContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitObjd(RedoParser.ObjdContext ctx) 
+	{ 
+		objd = ctx.objd_value().getText();
+	}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterObjd_value(RedoParser.Objd_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitObjd_value(RedoParser.Objd_valueContext ctx) { }
+
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1084,4 +1181,6 @@ public class RedoWalker extends RedoParserBaseListener
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void visitErrorNode(ErrorNode node) { }
+
+
 }
