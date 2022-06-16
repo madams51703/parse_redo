@@ -92,9 +92,11 @@ subscn_value
 date_value
     : DATE
     ;
-
+chg_prefix_exists
+    : PREFIX EXISTS ON BLOCK COMMA SNO COLON HEX len
+    ;
 change
-    : lfdba? CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj 
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj 
                                scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
               |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
@@ -105,12 +107,13 @@ ktsfrbfmt_redo
     : KTSFRBFMT REDO ':' segobjd type itls cscn
     ;
 
+
 cscn
     : CSCN ':' cscn_value
     ;
 
 cscn_value
-    : HEX 
+    : HEX '.'? HEX?
     ;
 
 itls
