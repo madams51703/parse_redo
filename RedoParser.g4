@@ -97,14 +97,27 @@ chg_prefix_exists
     ;
 change
     : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
-              |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid?
+                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
+              |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid? datafile_resize_marker?
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
               )
     ;
 
+ktust_redo
+    : KTUST REDO ':' slt sqn sta cfl
+    ;
+
+
 ktsfrbfmt_redo
     : KTSFRBFMT REDO ':' segobjd type itls cscn
+    ;
+
+cfl
+    : CFL ':' cfl_value
+    ;
+
+cfl_value
+    : HEX
     ;
 
 
@@ -172,6 +185,7 @@ ktsfrblnk_redo_opcode
  
 ktucm_redo
     : KTUCM REDO ':' slt sqn srt sta flg ktucf_redo?
+    | KTUCM REDO ':' slt sqn srt sta flg scn
     ;
 
 ktucf_redo
@@ -530,3 +544,30 @@ lfdba_value
     : HEX
     ;
 
+datafile_resize_marker:
+    DATAFILE RESIZE MARKER '-' file old_size new_size
+    ;
+
+file:
+    FILE COLON file_value
+    ;
+
+file_value
+    : HEX
+    ;
+
+old_size:
+    OLD SIZE COLON old_size_value
+    ;
+
+old_size_value
+    :HEX
+    ;
+
+new_size:
+    NEW SIZE COLON new_size_value
+    ;
+
+new_size_value:
+    HEX
+    ;

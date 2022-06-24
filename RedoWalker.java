@@ -25,6 +25,9 @@ public class RedoWalker extends RedoParserBaseListener
 	private String media_recovery_marker_string="N";
 	private Integer redo_record_len;
 	private Integer absolute_file_number;
+	private Integer datafile_number;
+	private Integer old_number_of_blocks;
+	private Integer new_number_of_blocks;
 	private String block_class ;
 	private Integer starting_output=-1;
 	private String transaction_id;
@@ -645,11 +648,11 @@ public class RedoWalker extends RedoParserBaseListener
 			the_output_count ++;
 			if ( objd != null )
 			{
-			the_output[the_output_count] = change_date + ',' + data_object_id_string + '(' + objd + ')' + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + ',' + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
+			the_output[the_output_count] = change_date + ',' + data_object_id_string + '(' + objd + ')' + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ','  + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
 			}
 			else
 			{
-			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + ',' + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
+			the_output[the_output_count] = change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ','  + block_class + ',' + Integer.toString(absolute_file_number) + ',' + Long.toString(block) ;
 			}
 
 			// System.out.println(change_date + ',' + data_object_id_string + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString( redo_record_len) + ',' + Integer.toString(absolute_file_number) );
@@ -659,7 +662,14 @@ public class RedoWalker extends RedoParserBaseListener
 		{
 			the_output_count ++;
 
-			the_output[the_output_count] = change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len)  ;
+			the_output[the_output_count] = change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len)   ;
+			if ( datafile_number > 0 )
+			{
+				 the_output[the_output_count] =  the_output[the_output_count] + ',' + Integer.toString(datafile_number) + ',' + Integer.toString(old_number_of_blocks) + ',' + Integer.toString(new_number_of_blocks) ;
+				datafile_number = 0;
+				old_number_of_blocks = 0;
+				new_number_of_blocks = 0;
+			}
 			// System.out.println(change_date + ',' + "MEDIA RECOVERY MARKER" + ',' + layer_string + '.' + opcode_string + ',' + opcode_lookup[Integer.valueOf(layer_string)][Integer.valueOf(opcode_string)] + ',' + Integer.toString(redo_record_len) + ','  );
 		}
 
@@ -678,7 +688,12 @@ public class RedoWalker extends RedoParserBaseListener
 		media_recovery_marker_string = "N";
 		invalid_string = "N";
 	}
-	@Override public void enterMedia_recovery_marker(RedoParser.Media_recovery_markerContext ctx) { }
+	@Override public void enterMedia_recovery_marker(RedoParser.Media_recovery_markerContext ctx) 
+	{
+	datafile_number = 0;
+	old_number_of_blocks = 0;
+	new_number_of_blocks = 0; 
+	}
         /**
          * {@inheritDoc}
          *
@@ -825,6 +840,18 @@ public class RedoWalker extends RedoParserBaseListener
 	@Override public void exitChg_afn(RedoParser.Chg_afnContext ctx) {
           absolute_file_number = Integer.decode(ctx.afn_value().getText() ) ;
 	}
+
+	@Override public void exitFile(RedoParser.FileContext ctx) {
+         datafile_number = Integer.decode(ctx.file_value().getText() ) ;
+	}
+
+	@Override public void exitOld_size(RedoParser.Old_sizeContext ctx) {
+         old_number_of_blocks = Integer.decode(ctx.old_size_value().getText() ) ;
+	}
+	@Override public void exitNew_size(RedoParser.New_sizeContext ctx) {
+         new_number_of_blocks = Integer.decode(ctx.new_size_value().getText() ) ;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 *
