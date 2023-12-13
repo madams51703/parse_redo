@@ -1,0 +1,3 @@
+[submodule "ora_functions"]
+	path = ora_functions
+	url = https://gitlab.com/FritsHoogland/ora_functions.git
