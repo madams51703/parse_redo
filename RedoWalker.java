@@ -31,7 +31,7 @@ public class RedoWalker extends RedoParserBaseListener
 	private String block_class ;
 	private Integer starting_output=-1;
 	private String transaction_id;
-        private String the_output[] = new String[30000] ;
+        private String the_output[] = new String[300000] ;
 	private String change_columns = new String();
 	private Integer found_columns = -1;
 	private Integer the_output_count = -1;
