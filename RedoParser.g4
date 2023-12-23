@@ -2,7 +2,6 @@ parser grammar RedoParser;
 
 options { tokenVocab=RedoLexer; }
 
-
 redo_file
     : redo_record_info* EOF
     ;

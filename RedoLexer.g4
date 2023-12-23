@@ -2,6 +2,7 @@
 
 lexer grammar RedoLexer;
 
+options { caseInsensitive = true; }
 
 
 
