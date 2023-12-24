@@ -1,8 +1,28 @@
 #include "/usr/local/include/antlr4-runtime/antlr4-runtime.h"
 #include "RedoParserBaseListener.h"
 
+#include <iostream>
+#include <array> // for array, at()
+#include <tuple> // for get()
+using namespace std;
+
+class change_vector {
+    // Access specifier
+public:
+    // Data  Members
+    int change_vector_id;
+    string geekname;
+    // Member Functions()
+    void printname() { cout << "Geekname is:" << geekname; }
+};
+
 class RedoWalker : public RedoParserBaseListener
 {
+
+private:
+
+array<change_vector,400000> change_vectors;
+
 public:
 
 void enterRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  { std::cout << "In Redo File: "  << std::endl; }

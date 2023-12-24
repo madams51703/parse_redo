@@ -12,7 +12,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 	string line;
-	ifstream RedoParserFile ("msa.input");
+	ifstream RedoParserFile (argv[1]);
 	if (RedoParserFile.is_open()) {
 		ANTLRInputStream input(RedoParserFile);
 		RedoLexer lexer(&input);

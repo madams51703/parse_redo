@@ -233,10 +233,12 @@ ktsfrgrp_redo
 
 ktubl_redo
    : KTUBL REDO ':' slt rci opc LSQUARE objn objd tsn RSQUARE
+   | KTUBL REDO ':' slt wrp flg prev_dba rci opc '[' objn objd tsn ']'
    ;
 
 ktubu_redo
    : KTUBU REDO ':' slt rci opc objn objd tsn 
+   | KTUBU REDO ':' slt wrp flg prev_dba rci opc '[' objn objd tsn ']'
    ;
 
 ktelk_redo
@@ -249,6 +251,23 @@ ktudb_redo
 
 ktudbu_redo
     : KTUDBU REDO ':' slt rci opc objn objd tsn
+    ;
+
+wrp
+    :WRP ':' wrp_value
+    ;
+
+wrp_value
+    : HEX
+    ;
+
+prev_dba
+    : PREV DBA ':' prev_dba_value
+    ;
+
+
+prev_dba_value
+    : HEX
     ;
 
 obj

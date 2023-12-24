@@ -156,6 +156,7 @@ UNDO:                  'UNDO';
 USER:                  'USER';
 VLD:                   'VLD';
 VER:                   'VER';
+WRP:                   'WRP';
 XA:                    'XA';
 XID:                   'XID';
 XTYPE:                 'XTYPE';
