@@ -23,15 +23,26 @@ public:
     std::string enc;
     std::string rbl;
     std::string flg;
+    std::string date;
+    std::string xid;
 
     // Member Functions()
     void printobjd() { cout << " OBJ is:" << obj; }
     void print_change_vector( array <std::string,40> block_classes,string opcodes[100][100]) {
 
- 
-                std::istringstream converter { dba };
                 long long int dba_value = 0;
-		converter >> std::hex >> dba_value;
+		long long int block;
+		long long int block_mask = 4194303;
+		if (dba.compare("") != 0 )
+		{ 
+                	std::istringstream converter { dba };
+			converter >> std::hex >> dba_value ;
+			block = dba_value  & block_mask;
+		}
+		else 
+		{
+			block =0;
+		}
 
                 std::istringstream converter_cls { cls };
                 long long int cls_value = 0;
@@ -44,11 +55,12 @@ public:
                 std::istringstream converter_opcode { opcode };
                 long long int opcode_value = 0;
 		converter_opcode >> std::dec >> opcode_value;
-
-
+		cout << xid << ",";
+		cout << date << ",";
 		cout <<  obj << "," << layer << "." <<opcode << "," ;
 		cout << opcodes[layer_value][opcode_value] <<","; 
-		cout << block_classes[cls_value] << "," << afn << "," << dba_value << "\n";
+		cout << block_classes[cls_value] << "," << afn << "," << block << ",";
+		cout << "\n";
 	}
 };
 
@@ -57,6 +69,7 @@ class RedoWalker : public RedoParserBaseListener
 {
 
 private:
+
 string opcode_lookup[100][100];
 
 array <std::string,40> block_classes_real = {"","Data Block","Sort Block","Defered Undo Segment Blocks","Segment Header Block(Table)","Deferred Undo Segment Header Blocks","Free List Blocks","Extent Map Blocks","Space Management Bitmap Blocks","1st level bmb","second level bmb","3rd level bmb","Bitmap Block","Bitmap index  block","File Header Block","Unused","System Undo Header","System Undo Block","Undo Header","Undo Block"};
@@ -64,6 +77,8 @@ array <std::string,40> block_classes_real = {"","Data Block","Sort Block","Defer
 
 array<change_vector,400000> change_vectors;
 long number_of_change_vectors=0;
+long change_vectors_at_redo_record=0;
+long change_vectors_at_last_xid=0;
 std::string current_objd="";
 std::string current_seq="";
 
@@ -157,8 +172,6 @@ RedoWalker() {
                 opcode_lookup[10][27] = "Redo for undo of format root block - KDICUFR";
                 opcode_lookup[10][28] = "Undo for migrating block - KDICUMG";
                 opcode_lookup[10][29] = "Redo for migrating block - KDICMG";
-                opcode_lookup[10][30] = "IOT leaf block nonkey update - KDICLNU";
-                opcode_lookup[10][31] = "Direct load root redo - KDICDLR";
                 opcode_lookup[10][32] = "Combine operation for insert and restore rows - KDICCOM";
                 opcode_lookup[10][33] = "Temp index redo apply - KDICTIX  askmaclean][com";
                 opcode_lookup[10][34] = "Remove block from b-tree and empty block - KDICFRE";
@@ -362,12 +375,19 @@ void exitRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  {std::cout << "Found
 	}
 
   }
-void enterRedo_record_info(RedoParser::Redo_record_infoContext * /*ctx*/)  {std::cout << "Starting A Redo Record: "  << std::endl; }
-void exitRedo_record_info(RedoParser::Redo_record_infoContext * /*ctx*/)  { }
+void enterRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  { }
+void exitRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  { }
 void enterRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
 void exitRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
-void enterRedo_record(RedoParser::Redo_recordContext * /*ctx*/)  { }
-void exitRedo_record(RedoParser::Redo_recordContext * /*ctx*/)  { }
+void enterRedo_record(RedoParser::Redo_recordContext * ctx)  {  }
+void exitRedo_record(RedoParser::Redo_recordContext * ctx)  {
+int i=0; 
+        for (i=change_vectors_at_redo_record ; i <= number_of_change_vectors  ; i++ )
+        {
+                change_vectors[i].date = ctx->date_value()->getText();
+        }
+       change_vectors_at_redo_record=number_of_change_vectors;
+ }
 void enterChange_records(RedoParser::Change_recordsContext * /*ctx*/)  { }
 void exitChange_records(RedoParser::Change_recordsContext * /*ctx*/)  { }
 void enterThread(RedoParser::ThreadContext * /*ctx*/)  { }
@@ -405,7 +425,7 @@ void exitDate_value(RedoParser::Date_valueContext * /*ctx*/)  { }
 void enterChg_prefix_exists(RedoParser::Chg_prefix_existsContext * /*ctx*/)  { }
 void exitChg_prefix_exists(RedoParser::Chg_prefix_existsContext * /*ctx*/)  { }
 void enterChange(RedoParser::ChangeContext * /*ctx*/)  { }
-void exitChange(RedoParser::ChangeContext * ctx)  {  number_of_change_vectors++; }
+void exitChange(RedoParser::ChangeContext * ctx)  {  number_of_change_vectors++;  }
 void enterKtust_redo(RedoParser::Ktust_redoContext * /*ctx*/)  { }
 void exitKtust_redo(RedoParser::Ktust_redoContext * /*ctx*/)  { }
 void enterKtsfrbfmt_redo(RedoParser::Ktsfrbfmt_redoContext * /*ctx*/)  { }
@@ -469,9 +489,9 @@ void exitKtecush_redo(RedoParser::Ktecush_redoContext * /*ctx*/)  { }
 void enterKtsfrgrp_redo(RedoParser::Ktsfrgrp_redoContext * /*ctx*/)  { }
 void exitKtsfrgrp_redo(RedoParser::Ktsfrgrp_redoContext * /*ctx*/)  { }
 void enterKtubl_redo(RedoParser::Ktubl_redoContext * /*ctx*/)  { }
-void exitKtubl_redo(RedoParser::Ktubl_redoContext * ctx)  { std:cout << "Current OBJD: "<< current_objd<<"\n" ; }
+void exitKtubl_redo(RedoParser::Ktubl_redoContext * ctx)  {  }
 void enterKtubu_redo(RedoParser::Ktubu_redoContext * /*ctx*/)  { }
-void exitKtubu_redo(RedoParser::Ktubu_redoContext * ctx)  {std:cout << "Current OBJD: "<< current_objd<<"\n" ; }
+void exitKtubu_redo(RedoParser::Ktubu_redoContext * ctx)  { }
 void enterKtelk_redo(RedoParser::Ktelk_redoContext * /*ctx*/)  { }
 void exitKtelk_redo(RedoParser::Ktelk_redoContext * /*ctx*/)  { }
 void enterKtudb_redo(RedoParser::Ktudb_redoContext * /*ctx*/)  { }
@@ -529,7 +549,7 @@ void exitSlt_value(RedoParser::Slt_valueContext * /*ctx*/)  { }
 void enterInvld(RedoParser::InvldContext * /*ctx*/)  { }
 void exitInvld(RedoParser::InvldContext * /*ctx*/)  { }
 void enterMedia_recovery_marker(RedoParser::Media_recovery_markerContext * /*ctx*/)  { }
-void exitMedia_recovery_marker(RedoParser::Media_recovery_markerContext * /*ctx*/)  { }
+void exitMedia_recovery_marker(RedoParser::Media_recovery_markerContext * ctx)  {change_vectors[number_of_change_vectors].obj = "MEDIA RECOVERY MARKER"; }
 void enterChange_number(RedoParser::Change_numberContext * /*ctx*/)  { }
 void exitChange_number(RedoParser::Change_numberContext * /*ctx*/)  { }
 void enterBlks(RedoParser::BlksContext * /*ctx*/)  { }
@@ -561,7 +581,15 @@ void exitSeq(RedoParser::SeqContext * ctx)  {current_seq=ctx->seq_value()->getTe
 void enterSeq_value(RedoParser::Seq_valueContext * /*ctx*/)  { }
 void exitSeq_value(RedoParser::Seq_valueContext * /*ctx*/)  { }
 void enterXid(RedoParser::XidContext * /*ctx*/)  { }
-void exitXid(RedoParser::XidContext * /*ctx*/)  { }
+void exitXid(RedoParser::XidContext * ctx)  {
+
+	int i=0; 
+        for (i=change_vectors_at_last_xid ; i <= number_of_change_vectors  ; i++ )
+        {
+                change_vectors[i].xid = ctx->xid_value()->getText();
+        }
+       change_vectors_at_last_xid=number_of_change_vectors;
+ }
 void enterXid_value(RedoParser::Xid_valueContext * /*ctx*/)  { }
 void exitXid_value(RedoParser::Xid_valueContext * /*ctx*/)  { }
 void enterLayer_opcode(RedoParser::Layer_opcodeContext * /*ctx*/)  { }
