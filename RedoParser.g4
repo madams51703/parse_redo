@@ -18,6 +18,8 @@ redo_info
     | ktudb_redo
     | ktudh_redo
     | ktudbu_redo
+    | ktsbifm_redo
+    | ktudbr_redo
     ;
 
 redo_record
@@ -101,6 +103,14 @@ change
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
               )
     ;
+
+ktudbr_redo
+    :  KTUDBR REDO ':'  DISABLE BLOCK LEVEL RECO ON xid
+    ;
+
+ktsbifm_redo
+    :KTSBIFM REDO ':' JUST A MARKER
+    ; 
 
 ktust_redo
     : KTUST REDO ':' slt sqn sta cfl

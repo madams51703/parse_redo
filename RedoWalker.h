@@ -2,6 +2,7 @@
 #include "RedoParserBaseListener.h"
 
 #include <iostream>
+#include <cstdlib>
 #include <array> // for array, at()
 #include <tuple> // for get()
 using namespace std;
@@ -10,76 +11,306 @@ class change_vector {
     // Access specifier
 public:
     // Data  Members
-    std::string con_id;
-    std::string typ;
-    std::string cls;
-    std::string afn;
-    std::string dba;
-    std::string obj;
-    std::string scn;
-    std::string seq;
-    std::string layer;
-    std::string opcode;
-    std::string enc;
-    std::string rbl;
-    std::string flg;
+    int con_id;
+    int typ;
+    int cls=0;
+    int afn;
+    unsigned long dba;
+    unsigned long obj;
+    long scn_base;
+    long scn_wrap;
+    int seq;
+    int layer;
+    int opcode;
+    int enc;
+    int rbl;
+    unsigned int flg;
     std::string date;
-    std::string xid;
+    std::string xid="";
+    long slt=0;
+    unsigned long sqn=0;  //  Known as the wrap in Oracle lingo
+
+    long ktust_redo_slt=0;
+    unsigned long ktust_redo_sqn=0;
+    
+
+    long ktubl_redo_slt=0;
+    unsigned long ktubl_redo_wrp=9;
+    int ktubl_redo_rci=0; 
+
+    long ktubu_redo_slt=0;
+    unsigned long ktubu_redo_wrp=0;
+    long ktubu_redo_flg=0;
+    long ktubu_redo_prev_dba=0;
+    long ktubu_redo_rci=0;
+    int ktubu_redo_layer=0;
+    int ktubu_redo_opcode=0;
+    unsigned long ktubu_redo_objn=0;
+    unsigned long ktubu_redo_objd=0;
+    long ktubu_redo_ts=0;  
+
+  
+    string ktelk_redo_xid;
+
+
+    long ktudbu_redo_slt;
+
+
+    long ktudb_redo_siz=0;
+    long ktudb_redo_sp=0;
+    long ktudb_redo_flg=0;
+    long ktudb_redo_seq=0;
+    long ktudb_redo_rec=0;
+    unsigned long ktudb_xid[3]={0,0,0};
+
+
+
+
+    long ktudh_redo_slt;
+    unsigned long ktudh_redo_sqn;
+    long ktudh_redo_flg=0;
+    long ktudh_redo_siz=0;
+    long ktudh_redo_fbi=0;
+    unsigned long ktudh_redo_uba[3]={0,0,0};
+    unsigned long ktudh_redo_pxid[3]={0,0,0};
+    
+    long ktucm_redo_slt=0;
+    unsigned long ktucm_redo_sqn=0;
+
+    long ktucm_redo_srt=0;
+    long ktucm_redo_sta=0;
+    long ktucm_redo_flg=0;
+
+    unsigned long ktucf_redo_uba[3]={0,0,0};
+    long ktucf_redo_ext=0;
+    long ktcuf_redo_spc=0;
+    long kctuf_redo_fbi=0;
+
+    long resize_afn=0;
+    long resize_old_size=0;
+    long resize_new_size=0;
+
+
+
 
     // Member Functions()
     void printobjd() { cout << " OBJ is:" << obj; }
-    void print_change_vector( array <std::string,40> block_classes,string opcodes[100][100]) {
-
+    void print_change_vector( array <std::string,17> block_classes,string opcodes[100][100]) {
+                int xid_printed=0; 
+		long undo_segment=0;
                 long long int dba_value = 0;
 		long long int block;
 		long long int block_mask = 4194303;
-		if (dba.compare("") != 0 )
+                div_t undo_segment_div;
+
+	        xid_printed = 0;
+	
+		if (cls >16)
+		{
+			undo_segment_div = div( (cls - 16),2);
+			undo_segment = undo_segment_div.quot;
+		}
+
+		if (dba != 0 )
 		{ 
-                	std::istringstream converter { dba };
-			converter >> std::hex >> dba_value ;
-			block = dba_value  & block_mask;
+			block = dba  & block_mask;
 		}
 		else 
 		{
 			block =0;
 		}
 
-                std::istringstream converter_cls { cls };
-                long long int cls_value = 0;
-		converter_cls >> std::dec >> cls_value;
+		if (ktudh_redo_slt != 0)
+		{
+			cout << std::dec << undo_segment << "." << std::dec << ktudh_redo_slt << "." << std::dec << ktudh_redo_sqn << ",";
+			xid_printed =1;
+		}
 
-                std::istringstream converter_layer { layer };
-                long long int layer_value = 0;
-		converter_layer >> std::dec >> layer_value;
+		if (ktust_redo_slt != 0)
+		{
+			cout << std::dec << undo_segment << "." << std::dec << ktust_redo_slt << "."  << std::dec << ktust_redo_sqn << ",";
+			xid_printed =1;
+		}
 
-                std::istringstream converter_opcode { opcode };
-                long long int opcode_value = 0;
-		converter_opcode >> std::dec >> opcode_value;
-		cout << xid << ",";
+		if (ktucm_redo_slt != 0)
+		{
+			cout << std::dec << undo_segment << "." << std::dec << ktucm_redo_slt << "." << std::dec << ktucm_redo_sqn << ",";
+			xid_printed =1;
+		}
+
+		if (ktubl_redo_slt != 0)
+		{
+			cout << std::dec << undo_segment << "." << std::dec << ktubl_redo_slt << "." << std::dec << ktubl_redo_wrp << ",";
+			xid_printed =1;
+		}
+
+		if (ktubu_redo_slt != 0)
+		{
+			cout << std::dec << undo_segment << "." << std::dec << ktubu_redo_slt << "." <<std::dec << ktubu_redo_wrp << ",";
+			xid_printed =1;
+		}
+
+		if (ktudbu_redo_slt != 0)
+		{
+			cout << std::dec << undo_segment << "." << std::dec << ktudbu_redo_slt << ",";
+			xid_printed =1;
+		}
+
+
+		if (xid.compare("") !=0  && xid_printed ==0 )
+		{
+			cout << xid << ",";
+			xid_printed =1;
+		}	
+
+		if ( xid_printed == 0)
+		{
+
+			cout << "NO_XID" << ",";
+		}             
+ 	
 		cout << date << ",";
-		cout <<  obj << "," << layer << "." <<opcode << "," ;
-		cout << opcodes[layer_value][opcode_value] <<","; 
-		cout << block_classes[cls_value] << "," << afn << "," << block << ",";
+		if ( obj == -1 )
+		{
+			cout << "MEDIA RECOVERY MARKER" << "," ;
+		}
+
+		else
+		{
+			cout << std::dec << obj << "," ;
+
+		}
+
+		cout << std::dec << layer << "." << std::dec << opcode << "," ;
+		cout << opcodes[layer][opcode] <<","; 
+		if ( cls <=16 )
+		{
+			cout << block_classes[cls] << "(" << cls <<")" << ",";
+		}
+		else
+		{
+			cout << "Block Class (" << cls << ")" << ",";
+		}
+		cout << std::dec<< afn << "," <<std::dec << block << ",";
+
+		if ( resize_afn != 0 )
+		{
+
+		    cout << resize_afn << "," << resize_old_size << "," << resize_new_size << "," << (resize_new_size - resize_old_size)*8192 << ",";			
+
+		}
+
+
 		cout << "\n";
+
 	}
 };
+class msa_convert
+{
 
+public:
+
+    unsigned long convert_dec_str_to_ulong(std::string value)
+    {
+        std::istringstream converter_text { value };
+        unsigned long ret_value = 0;
+        converter_text >> std::dec >> ret_value;
+        return ret_value;
+    }
+  
+    long convert_dec_str_to_long(std::string value)
+    {
+        std::istringstream converter_text { value };
+        long ret_value = 0;
+        converter_text >> std::dec >> ret_value;
+        return ret_value;
+    }	
+
+    int convert_dec_str_to_int(std::string value)
+    {
+        std::istringstream converter_text { value };
+        int ret_value = 0;
+        converter_text >> std::dec >> ret_value;
+        return ret_value;
+    }	
+
+    unsigned int convert_dec_str_to_uint(std::string value)
+    {
+        std::istringstream converter_text { value };
+        unsigned int ret_value = 0;
+        converter_text >> std::dec >> ret_value;
+        return ret_value;
+    }	
+
+//Start Hex Conversion
+
+    unsigned long convert_hex_str_to_ulong(std::string value)
+    {
+        std::istringstream converter_text { value };
+        unsigned long ret_value = 0;
+        converter_text >> std::hex >> ret_value;
+        return ret_value;
+    }
+  
+    long convert_hex_str_to_long(std::string value)
+    {
+        std::istringstream converter_text { value };
+        long ret_value = 0;
+        converter_text >> std::hex >> ret_value;
+        return ret_value;
+    }	
+
+    int convert_hex_str_to_int(std::string value)
+    {
+        std::istringstream converter_text { value };
+        int ret_value = 0;
+        converter_text >> std::hex >> ret_value;
+        return ret_value;
+    }	
+
+    unsigned int convert_hex_str_to_uint(std::string value)
+    {
+        std::istringstream converter_text { value };
+        unsigned int ret_value = 0;
+        converter_text >> std::hex >> ret_value;
+        return ret_value;
+    }	
+
+};
 
 class RedoWalker : public RedoParserBaseListener
 {
 
 private:
+msa_convert string_to_number;
 
 string opcode_lookup[100][100];
-
-array <std::string,40> block_classes_real = {"","Data Block","Sort Block","Defered Undo Segment Blocks","Segment Header Block(Table)","Deferred Undo Segment Header Blocks","Free List Blocks","Extent Map Blocks","Space Management Bitmap Blocks","1st level bmb","second level bmb","3rd level bmb","Bitmap Block","Bitmap index  block","File Header Block","Unused","System Undo Header","System Undo Block","Undo Header","Undo Block"};
-
+array <std::string,17> block_classes_real = 
+{
+""
+,"block"
+,"sort block"
+,"save undo block"
+,"segment header"
+,"save undo header"
+,"free list"
+,"extent map"
+,"1st level bmb"
+,"2nd level bmb"
+,"3rd level bmb"
+,"bitmap block"
+,"bitmap index block"
+,"file header block"
+,"unused"
+,"system undo header"
+,"system undo block"
+};
 
 array<change_vector,400000> change_vectors;
 long number_of_change_vectors=0;
 long change_vectors_at_redo_record=0;
 long change_vectors_at_last_xid=0;
-std::string current_objd="";
+long current_objd=0;
 std::string current_seq="";
 
 public:
@@ -365,12 +596,15 @@ RedoWalker() {
 
 }
 
-void enterRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  { std::cout << "In Redo File: "  << std::endl; }
-void exitRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  {std::cout << "Found "<<number_of_change_vectors << " change vectors\n";
+void enterRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  { /* std::cout << "In Redo File: "  << std::endl; */ }
+void exitRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  {
+
+//std::cout << "Found "<<number_of_change_vectors << " change vectors\n";
 
    int i;   
-	for(i=0; i < (number_of_change_vectors+1) ; i++ )
+	for(i=0; i < (number_of_change_vectors) ; i++ )
 	{
+//For Debug         cout << "RECORD:" << i << "\n";	
 	 change_vectors[i].print_change_vector(block_classes_real,opcode_lookup);
 	}
 
@@ -382,14 +616,17 @@ void exitRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
 void enterRedo_record(RedoParser::Redo_recordContext * ctx)  {  }
 void exitRedo_record(RedoParser::Redo_recordContext * ctx)  {
 int i=0; 
+
+//	cout << "B4 change_vectors_at_redo_record = " << change_vectors_at_redo_record << "\n"; 
         for (i=change_vectors_at_redo_record ; i <= number_of_change_vectors  ; i++ )
         {
                 change_vectors[i].date = ctx->date_value()->getText();
         }
        change_vectors_at_redo_record=number_of_change_vectors;
+//	cout << "AFTER change_vectors_at_redo_record = " << change_vectors_at_redo_record << "\n"; 
  }
 void enterChange_records(RedoParser::Change_recordsContext * /*ctx*/)  { }
-void exitChange_records(RedoParser::Change_recordsContext * /*ctx*/)  { }
+void exitChange_records(RedoParser::Change_recordsContext * ctx ) {   }
 void enterThread(RedoParser::ThreadContext * /*ctx*/)  { }
 void exitThread(RedoParser::ThreadContext * /*ctx*/)  { }
 void enterThread_number(RedoParser::Thread_numberContext * /*ctx*/)  { }
@@ -425,9 +662,9 @@ void exitDate_value(RedoParser::Date_valueContext * /*ctx*/)  { }
 void enterChg_prefix_exists(RedoParser::Chg_prefix_existsContext * /*ctx*/)  { }
 void exitChg_prefix_exists(RedoParser::Chg_prefix_existsContext * /*ctx*/)  { }
 void enterChange(RedoParser::ChangeContext * /*ctx*/)  { }
-void exitChange(RedoParser::ChangeContext * ctx)  {  number_of_change_vectors++;  }
+void exitChange(RedoParser::ChangeContext * ctx)  {   number_of_change_vectors++;  }
 void enterKtust_redo(RedoParser::Ktust_redoContext * /*ctx*/)  { }
-void exitKtust_redo(RedoParser::Ktust_redoContext * /*ctx*/)  { }
+void exitKtust_redo(RedoParser::Ktust_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktust_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; change_vectors[number_of_change_vectors].ktust_redo_sqn = string_to_number.convert_hex_str_to_ulong(ctx->sqn()->sqn_value()->getText() ) ; }
 void enterKtsfrbfmt_redo(RedoParser::Ktsfrbfmt_redoContext * /*ctx*/)  { }
 void exitKtsfrbfmt_redo(RedoParser::Ktsfrbfmt_redoContext * /*ctx*/)  { }
 void enterCfl(RedoParser::CflContext * /*ctx*/)  { }
@@ -465,7 +702,7 @@ void exitKtsfrblnk_redo(RedoParser::Ktsfrblnk_redoContext * /*ctx*/)  { }
 void enterKtsfrblnk_redo_opcode(RedoParser::Ktsfrblnk_redo_opcodeContext * /*ctx*/)  { }
 void exitKtsfrblnk_redo_opcode(RedoParser::Ktsfrblnk_redo_opcodeContext * /*ctx*/)  { }
 void enterKtucm_redo(RedoParser::Ktucm_redoContext * /*ctx*/)  { }
-void exitKtucm_redo(RedoParser::Ktucm_redoContext * /*ctx*/)  { }
+void exitKtucm_redo(RedoParser::Ktucm_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktucm_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; change_vectors[number_of_change_vectors].ktucm_redo_sqn = string_to_number.convert_hex_str_to_ulong(ctx->sqn()->sqn_value()->getText() ) ; }
 void enterKtucf_redo(RedoParser::Ktucf_redoContext * /*ctx*/)  { }
 void exitKtucf_redo(RedoParser::Ktucf_redoContext * /*ctx*/)  { }
 void enterExt(RedoParser::ExtContext * /*ctx*/)  { }
@@ -491,21 +728,21 @@ void exitKtsfrgrp_redo(RedoParser::Ktsfrgrp_redoContext * /*ctx*/)  { }
 void enterKtubl_redo(RedoParser::Ktubl_redoContext * /*ctx*/)  { }
 void exitKtubl_redo(RedoParser::Ktubl_redoContext * ctx)  {  }
 void enterKtubu_redo(RedoParser::Ktubu_redoContext * /*ctx*/)  { }
-void exitKtubu_redo(RedoParser::Ktubu_redoContext * ctx)  { }
+void exitKtubu_redo(RedoParser::Ktubu_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktubu_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; change_vectors[number_of_change_vectors].ktubu_redo_wrp = string_to_number.convert_hex_str_to_ulong(ctx->wrp()->wrp_value()->getText() ) ; }
 void enterKtelk_redo(RedoParser::Ktelk_redoContext * /*ctx*/)  { }
-void exitKtelk_redo(RedoParser::Ktelk_redoContext * /*ctx*/)  { }
+void exitKtelk_redo(RedoParser::Ktelk_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktelk_redo_xid = ctx->xid()->xid_value()->getText()  ; }
 void enterKtudb_redo(RedoParser::Ktudb_redoContext * /*ctx*/)  { }
-void exitKtudb_redo(RedoParser::Ktudb_redoContext * /*ctx*/)  { }
+void exitKtudb_redo(RedoParser::Ktudb_redoContext * ctx)  {  }
 void enterKtudbu_redo(RedoParser::Ktudbu_redoContext * /*ctx*/)  { }
-void exitKtudbu_redo(RedoParser::Ktudbu_redoContext * /*ctx*/)  { }
+void exitKtudbu_redo(RedoParser::Ktudbu_redoContext * ctx)  { change_vectors[number_of_change_vectors].ktudbu_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; }
 void enterObj(RedoParser::ObjContext * /*ctx*/)  { }
-void exitObj(RedoParser::ObjContext * ctx)  {  change_vectors[number_of_change_vectors].obj = ctx->obj_value()->getText();}
+void exitObj(RedoParser::ObjContext * ctx)  {  change_vectors[number_of_change_vectors].obj = string_to_number.convert_dec_str_to_ulong(ctx->obj_value()->getText() ) ;}
 void enterObjn(RedoParser::ObjnContext * /*ctx*/)  { }
 void exitObjn(RedoParser::ObjnContext * /*ctx*/)  { }
 void enterObjn_value(RedoParser::Objn_valueContext * /*ctx*/)  { }
 void exitObjn_value(RedoParser::Objn_valueContext * /*ctx*/)  { }
 void enterObjd(RedoParser::ObjdContext * /*ctx*/)  { }
-void exitObjd(RedoParser::ObjdContext * ctx)  {current_objd = ctx->objd_value()->getText(); }
+void exitObjd(RedoParser::ObjdContext * ctx)  {current_objd = string_to_number.convert_dec_str_to_long(ctx->objd_value()->getText() ) ; }
 void enterObjd_value(RedoParser::Objd_valueContext * /*ctx*/)  { }
 void exitObjd_value(RedoParser::Objd_valueContext * /*ctx*/)  { }
 void enterTsn(RedoParser::TsnContext * /*ctx*/)  { }
@@ -517,7 +754,7 @@ void exitOpc(RedoParser::OpcContext * /*ctx*/)  { }
 void enterOpc_value(RedoParser::Opc_valueContext * /*ctx*/)  { }
 void exitOpc_value(RedoParser::Opc_valueContext * /*ctx*/)  { }
 void enterKtudh_redo(RedoParser::Ktudh_redoContext * /*ctx*/)  { }
-void exitKtudh_redo(RedoParser::Ktudh_redoContext * /*ctx*/)  { }
+void exitKtudh_redo(RedoParser::Ktudh_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktudh_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; change_vectors[number_of_change_vectors].ktudh_redo_sqn = string_to_number.convert_hex_str_to_ulong(ctx->sqn()->sqn_value()->getText() ) ; }
 void enterFbi(RedoParser::FbiContext * /*ctx*/)  { }
 void exitFbi(RedoParser::FbiContext * /*ctx*/)  { }
 void enterFbi_value(RedoParser::Fbi_valueContext * /*ctx*/)  { }
@@ -527,7 +764,7 @@ void exitSiz(RedoParser::SizContext * /*ctx*/)  { }
 void enterSiz_value(RedoParser::Siz_valueContext * /*ctx*/)  { }
 void exitSiz_value(RedoParser::Siz_valueContext * /*ctx*/)  { }
 void enterSqn(RedoParser::SqnContext * /*ctx*/)  { }
-void exitSqn(RedoParser::SqnContext * /*ctx*/)  { }
+void exitSqn(RedoParser::SqnContext * ctx)  {  }
 void enterSqn_value(RedoParser::Sqn_valueContext * /*ctx*/)  { }
 void exitSqn_value(RedoParser::Sqn_valueContext * /*ctx*/)  { }
 void enterSpc(RedoParser::SpcContext * /*ctx*/)  { }
@@ -543,13 +780,13 @@ void exitRci(RedoParser::RciContext * /*ctx*/)  { }
 void enterRci_value(RedoParser::Rci_valueContext * /*ctx*/)  { }
 void exitRci_value(RedoParser::Rci_valueContext * /*ctx*/)  { }
 void enterSlt(RedoParser::SltContext * /*ctx*/)  { }
-void exitSlt(RedoParser::SltContext * /*ctx*/)  { }
+void exitSlt(RedoParser::SltContext * ctx)  { }
 void enterSlt_value(RedoParser::Slt_valueContext * /*ctx*/)  { }
 void exitSlt_value(RedoParser::Slt_valueContext * /*ctx*/)  { }
 void enterInvld(RedoParser::InvldContext * /*ctx*/)  { }
 void exitInvld(RedoParser::InvldContext * /*ctx*/)  { }
 void enterMedia_recovery_marker(RedoParser::Media_recovery_markerContext * /*ctx*/)  { }
-void exitMedia_recovery_marker(RedoParser::Media_recovery_markerContext * ctx)  {change_vectors[number_of_change_vectors].obj = "MEDIA RECOVERY MARKER"; }
+void exitMedia_recovery_marker(RedoParser::Media_recovery_markerContext * ctx)  {change_vectors[number_of_change_vectors].obj = -1; }
 void enterChange_number(RedoParser::Change_numberContext * /*ctx*/)  { }
 void exitChange_number(RedoParser::Change_numberContext * /*ctx*/)  { }
 void enterBlks(RedoParser::BlksContext * /*ctx*/)  { }
@@ -561,39 +798,45 @@ void exitChg_type(RedoParser::Chg_typeContext * /*ctx*/)  { }
 void enterChg_type_value(RedoParser::Chg_type_valueContext * /*ctx*/)  { }
 void exitChg_type_value(RedoParser::Chg_type_valueContext * /*ctx*/)  { }
 void enterChg_class(RedoParser::Chg_classContext * /*ctx*/)  { }
-void exitChg_class(RedoParser::Chg_classContext * ctx)  { change_vectors[number_of_change_vectors].cls = ctx->chg_class_value()->getText(); }
+void exitChg_class(RedoParser::Chg_classContext * ctx)  { change_vectors[number_of_change_vectors].cls = string_to_number.convert_dec_str_to_int(ctx->chg_class_value()->getText() ); }
 void enterChg_class_value(RedoParser::Chg_class_valueContext * /*ctx*/)  { }
 void exitChg_class_value(RedoParser::Chg_class_valueContext * /*ctx*/)  { }
 void enterChg_afn(RedoParser::Chg_afnContext * /*ctx*/)  { }
-void exitChg_afn(RedoParser::Chg_afnContext * ctx)  {change_vectors[number_of_change_vectors].afn = ctx->afn_value()->getText(); }
+void exitChg_afn(RedoParser::Chg_afnContext * ctx)  {change_vectors[number_of_change_vectors].afn = string_to_number.convert_dec_str_to_int(ctx->afn_value()->getText() ) ; }
 void enterAfn_value(RedoParser::Afn_valueContext * /*ctx*/)  { }
 void exitAfn_value(RedoParser::Afn_valueContext * ctx)  { }
 void enterDba(RedoParser::DbaContext * /*ctx*/)  { }
-void exitDba(RedoParser::DbaContext * ctx)  { change_vectors[number_of_change_vectors].dba = ctx->dba_value()->getText();}
+void exitDba(RedoParser::DbaContext * ctx)  { change_vectors[number_of_change_vectors].dba = string_to_number.convert_hex_str_to_ulong(ctx->dba_value()->getText() ) ;}
 void enterDba_value(RedoParser::Dba_valueContext * /*ctx*/)  { }
 void exitDba_value(RedoParser::Dba_valueContext * /*ctx*/)  { }
 void enterChg_obj(RedoParser::Chg_objContext * /*ctx*/)  { }
-void exitChg_obj(RedoParser::Chg_objContext * ctx)  { change_vectors[number_of_change_vectors].obj = ctx->obj_value()->getText();}
+void exitChg_obj(RedoParser::Chg_objContext * ctx)  { change_vectors[number_of_change_vectors].obj = string_to_number.convert_dec_str_to_ulong(ctx->obj_value()->getText() );}
 void enterObj_value(RedoParser::Obj_valueContext * /*ctx*/)  { }
 void exitObj_value(RedoParser::Obj_valueContext * /*ctx*/)  { }
 void enterSeq(RedoParser::SeqContext * /*ctx*/)  { }
-void exitSeq(RedoParser::SeqContext * ctx)  {current_seq=ctx->seq_value()->getText(); }
+void exitSeq(RedoParser::SeqContext * ctx)  {current_seq=string_to_number.convert_dec_str_to_int( ctx->seq_value()->getText() ); }
 void enterSeq_value(RedoParser::Seq_valueContext * /*ctx*/)  { }
 void exitSeq_value(RedoParser::Seq_valueContext * /*ctx*/)  { }
 void enterXid(RedoParser::XidContext * /*ctx*/)  { }
 void exitXid(RedoParser::XidContext * ctx)  {
-
+/*
 	int i=0; 
         for (i=change_vectors_at_last_xid ; i <= number_of_change_vectors  ; i++ )
         {
                 change_vectors[i].xid = ctx->xid_value()->getText();
         }
-       change_vectors_at_last_xid=number_of_change_vectors;
+ 
+      change_vectors_at_last_xid=number_of_change_vectors;
+*/
+
+       change_vectors[number_of_change_vectors].xid = ctx->xid_value()->getText();
+	
  }
+
 void enterXid_value(RedoParser::Xid_valueContext * /*ctx*/)  { }
 void exitXid_value(RedoParser::Xid_valueContext * /*ctx*/)  { }
 void enterLayer_opcode(RedoParser::Layer_opcodeContext * /*ctx*/)  { }
-void exitLayer_opcode(RedoParser::Layer_opcodeContext * ctx)  {change_vectors[number_of_change_vectors].layer = ctx->layer()->getText(); change_vectors[number_of_change_vectors].opcode = ctx->opcode()->getText(); }
+void exitLayer_opcode(RedoParser::Layer_opcodeContext * ctx)  {change_vectors[number_of_change_vectors].layer =string_to_number.convert_dec_str_to_int( ctx->layer()->getText() ) ; change_vectors[number_of_change_vectors].opcode = string_to_number.convert_dec_str_to_int(ctx->opcode()->getText() ); }
 void enterLayer(RedoParser::LayerContext * /*ctx*/)  { }
 void exitLayer(RedoParser::LayerContext * /*ctx*/)  { }
 void enterOpcode(RedoParser::OpcodeContext * /*ctx*/)  { }
@@ -611,7 +854,7 @@ void exitFlg(RedoParser::FlgContext * /*ctx*/)  { }
 void enterFlg_value(RedoParser::Flg_valueContext * /*ctx*/)  { }
 void exitFlg_value(RedoParser::Flg_valueContext * /*ctx*/)  { }
 void enterCon_id(RedoParser::Con_idContext * /*ctx*/)  { }
-void exitCon_id(RedoParser::Con_idContext * ctx)  { change_vectors[number_of_change_vectors].con_id = ctx->con_id_value()->getText(); }
+void exitCon_id(RedoParser::Con_idContext * ctx)  { change_vectors[number_of_change_vectors].con_id = string_to_number.convert_dec_str_to_int(ctx->con_id_value()->getText() ); }
 void enterCon_id_value(RedoParser::Con_id_valueContext * /*ctx*/)  { }
 void exitCon_id_value(RedoParser::Con_id_valueContext * ctx)  {  }
 void enterCon_uid(RedoParser::Con_uidContext * /*ctx*/)  { }
@@ -650,7 +893,12 @@ void enterLfdba(RedoParser::LfdbaContext * /*ctx*/)  { }
 void exitLfdba(RedoParser::LfdbaContext * /*ctx*/)  { }
 void enterLfdba_value(RedoParser::Lfdba_valueContext * /*ctx*/)  { }
 void exitLfdba_value(RedoParser::Lfdba_valueContext * /*ctx*/)  { }
-void enterDatafile_resize_marker(RedoParser::Datafile_resize_markerContext * /*ctx*/)  { }
+void enterDatafile_resize_marker(RedoParser::Datafile_resize_markerContext * ctx)  { 
+change_vectors[number_of_change_vectors].resize_afn = string_to_number.convert_dec_str_to_int(ctx->file()->file_value()->getText() );
+change_vectors[number_of_change_vectors].resize_old_size= string_to_number.convert_dec_str_to_int(ctx->old_size()->old_size_value()->getText() );
+change_vectors[number_of_change_vectors].resize_new_size= string_to_number.convert_dec_str_to_int(ctx->new_size()->new_size_value()->getText() );
+
+}
 void exitDatafile_resize_marker(RedoParser::Datafile_resize_markerContext * /*ctx*/)  { }
 void enterFile(RedoParser::FileContext * /*ctx*/)  { }
 void exitFile(RedoParser::FileContext * /*ctx*/)  { }
