@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <antlr4-runtime/antlr4-runtime.h>
 
 #include "RedoLexer.h"
@@ -18,10 +17,10 @@ int main(int argc, char *argv[]) {
 		RedoLexer lexer(&input);
 		CommonTokenStream tokens(&lexer);
 
-		tokens.fill();
-		for (auto token : tokens.getTokens()) {
+//		tokens.fill();
+//		for (auto token : tokens.getTokens()) {
 //			std::cout << token->toString() << std::endl;
-		}
+//		}
 
 		RedoParser parser(&tokens);
 

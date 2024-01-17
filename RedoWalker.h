@@ -315,6 +315,7 @@ std::string current_seq="";
 
 public:
 RedoWalker() {
+//              cout << "Starting\n";
   		opcode_lookup[1][1] = "KTZ ForMaT block - KTZFMT";
 		opcode_lookup[1][2] = "Transaction Z Redo Data Header - KTZRDH";
                 opcode_lookup[1][3] = "KTZ Allocate Record Callback - KTZARC";
@@ -609,22 +610,24 @@ void exitRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  {
 	}
 
   }
-void enterRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  { }
-void exitRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  { }
-void enterRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
-void exitRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
-void enterRedo_record(RedoParser::Redo_recordContext * ctx)  {  }
-void exitRedo_record(RedoParser::Redo_recordContext * ctx)  {
+void enterRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  {
+
+ }
+void exitRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  {
 int i=0; 
 
-//	cout << "B4 change_vectors_at_redo_record = " << change_vectors_at_redo_record << "\n"; 
-        for (i=change_vectors_at_redo_record ; i <= number_of_change_vectors  ; i++ )
+        for (i=change_vectors_at_redo_record ; i < number_of_change_vectors   ; i++ )
         {
-                change_vectors[i].date = ctx->date_value()->getText();
+                change_vectors[i].date = ctx->redo_record()->date_value()->getText();
+ 		change_vectors[i].print_change_vector(block_classes_real,opcode_lookup);
         }
-       change_vectors_at_redo_record=number_of_change_vectors;
-//	cout << "AFTER change_vectors_at_redo_record = " << change_vectors_at_redo_record << "\n"; 
+        change_vectors_at_redo_record=number_of_change_vectors;
+
  }
+void enterRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { cout << "In Redo Info\n" ;}
+void exitRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
+void enterRedo_record(RedoParser::Redo_recordContext * ctx)  {  }
+void exitRedo_record(RedoParser::Redo_recordContext * ctx)  { }
 void enterChange_records(RedoParser::Change_recordsContext * /*ctx*/)  { }
 void exitChange_records(RedoParser::Change_recordsContext * ctx ) {   }
 void enterThread(RedoParser::ThreadContext * /*ctx*/)  { }
@@ -662,7 +665,7 @@ void exitDate_value(RedoParser::Date_valueContext * /*ctx*/)  { }
 void enterChg_prefix_exists(RedoParser::Chg_prefix_existsContext * /*ctx*/)  { }
 void exitChg_prefix_exists(RedoParser::Chg_prefix_existsContext * /*ctx*/)  { }
 void enterChange(RedoParser::ChangeContext * /*ctx*/)  { }
-void exitChange(RedoParser::ChangeContext * ctx)  {   number_of_change_vectors++;  }
+void exitChange(RedoParser::ChangeContext * ctx)  {    number_of_change_vectors++;  }
 void enterKtust_redo(RedoParser::Ktust_redoContext * /*ctx*/)  { }
 void exitKtust_redo(RedoParser::Ktust_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktust_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; change_vectors[number_of_change_vectors].ktust_redo_sqn = string_to_number.convert_hex_str_to_ulong(ctx->sqn()->sqn_value()->getText() ) ; }
 void enterKtsfrbfmt_redo(RedoParser::Ktsfrbfmt_redoContext * /*ctx*/)  { }
@@ -728,7 +731,7 @@ void exitKtsfrgrp_redo(RedoParser::Ktsfrgrp_redoContext * /*ctx*/)  { }
 void enterKtubl_redo(RedoParser::Ktubl_redoContext * /*ctx*/)  { }
 void exitKtubl_redo(RedoParser::Ktubl_redoContext * ctx)  {  }
 void enterKtubu_redo(RedoParser::Ktubu_redoContext * /*ctx*/)  { }
-void exitKtubu_redo(RedoParser::Ktubu_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktubu_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; change_vectors[number_of_change_vectors].ktubu_redo_wrp = string_to_number.convert_hex_str_to_ulong(ctx->wrp()->wrp_value()->getText() ) ; }
+void exitKtubu_redo(RedoParser::Ktubu_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktubu_redo_slt = string_to_number.convert_hex_str_to_long(ctx->slt()->slt_value()->getText() ) ; /* change_vectors[number_of_change_vectors].ktubu_redo_wrp = string_to_number.convert_hex_str_to_ulong(ctx->wrp()->wrp_value()->getText() ) ; */ }
 void enterKtelk_redo(RedoParser::Ktelk_redoContext * /*ctx*/)  { }
 void exitKtelk_redo(RedoParser::Ktelk_redoContext * ctx)  {change_vectors[number_of_change_vectors].ktelk_redo_xid = ctx->xid()->xid_value()->getText()  ; }
 void enterKtudb_redo(RedoParser::Ktudb_redoContext * /*ctx*/)  { }

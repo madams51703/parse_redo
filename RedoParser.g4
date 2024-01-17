@@ -146,6 +146,14 @@ itls_value
     : HEX
     ;
 
+itl
+    : ITL ':' itl_value?
+    ;
+
+itl_value
+    : HEX
+    ;
+
 typ
     : TYP ':' typ_value
     ;
@@ -262,6 +270,182 @@ ktudb_redo
 ktudbu_redo
     : KTUDBU REDO ':' slt rci opc objn objd tsn
     ;
+
+undo_type
+    : UNDO TYPE ':'  REGULAR UNDO BEGIN TRANS 
+    ;
+
+last_buffer_split
+    : LAST BUFFER SPLIT ':'  last_buffer_split_value
+    ;
+
+last_buffer_split_value
+    : YES
+    | NO
+    ;
+
+temp_object
+    : TEMP OBJECT ':' temp_object_value
+    ;
+
+
+temp_object_value
+    : YES
+    | NO
+    ;
+
+object_uba
+    : HEX prev_ctl_uba
+    ;
+
+prev_ctl_uba
+    : PREV CTL uba
+    ;
+
+prev_ctl_max_cmt_scn
+    : PREV CTL MAX CMT scn
+    ;
+
+
+prev_tx_cmt_scn
+    : PREV TX CMT SCN scn
+    ;
+
+txn_start_scn
+    : TXN START scn
+    ;
+
+logon_user
+    : LOGON USER ':' HEX
+    ;
+
+prev_brb
+    : PREV BRB ':' HEX
+    ;
+
+
+prev_bcl
+    : PREV BCL ':' HEX
+    ;
+
+
+buext_idx
+    : BUEXT IDX ':' HEX
+    ;
+
+flg2
+    : FLG2 ':' HEX
+    ;
+
+kdo_op_code
+    : KDO OP CODE rp_dependencies
+    ;
+
+rp_dependencies
+    : DRP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    ;
+
+bdba
+    : BDBA ':' bdba_value
+    ;
+
+bdba_value
+    :  HEX
+    ;
+
+hdba
+    : HDBA ':' hdba_value
+    ;
+
+hdba_value
+    : HEX
+    ;
+
+xtype
+    : XTYPE ':' xtype_value?
+    ;
+
+xtype_value
+    : HEX
+    ;
+
+xa_flags
+    : XA FLAGS ':' xa_flags_value
+    ;
+
+xa_flags_value
+    : HEX
+    ;
+
+
+
+kdo_undo_record
+   : KDO UNDO RECORD ':' KTB REDO
+   ;
+
+ktb_redo_op1
+   : OP ':' HEX  ver
+   ;
+
+ktb_redo_compat_bit
+   : COMPAT BIT '(' POST MINUS_ELEVEN ')'
+   ;
+
+padding
+   : PADDING ':' padding_value
+   ;
+
+padding_value
+   : HEX
+   ;
+
+ktb_redo_op2
+   : OP ':' ktb_redo_op_l
+   | OP ':' ktb_redo_op_f
+   | OP ':' ktb_redo_op_c
+   ;
+
+ktb_redo_op_l
+   : L itl xid uba ktb_redo_flg lkc scn
+   ;
+
+ktb_redo_flg
+   : FLG ':' ktb_redo_flg_value
+   ;
+
+ktb_redo_flg_value
+   : KTB_REDO_FLG_VALUE
+   ;
+
+ktb_redo_op_c
+   : C uba
+   ;
+
+ktb_redo_op_f
+   : F xid uba block_cleanout_record
+   ;
+
+
+itli_entries
+   : itli
+   ;
+
+itli
+   : ITLI itli_value flg scn
+   ;
+
+
+itli_value
+   :  HEX
+   ;
+
+lkc
+   : LKC ':' lkc_value
+   ;
+
+lkc_value
+   : HEX
+   ;
 
 wrp
     :WRP ':' wrp_value
@@ -530,6 +714,7 @@ column_value
 
 block_cleanout_record
     : BLOCK CLEANOUT RECORD COMMA scn ver opt bigscn compact spare COMMA ENTRIES FOLLOW DOT DOT DOT
+    | BLOCK CLEANOUT RECORD COMMA scn ver opt ENTRIES FOLLOW DOT DOT DOT  itli_entries+
     ;
 
 opt
