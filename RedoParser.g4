@@ -23,7 +23,7 @@ redo_info
     ;
 
 redo_record
-    : REDO RECORD MINUS thread rba len vld con_uid? scn subscn date_value
+    : REDO RECORD MINUS thread rba len vld con_uid? scn subscn date_value lwn_info?
     ;
 
 change_records
@@ -93,12 +93,24 @@ subscn_value
 date_value
     : DATE
     ;
+
+lwn_info
+    : '(' LWN rba len nst scn ')'
+    ;
+
+nst
+    : NST ':' nst_value
+    ;
+
+nst_value
+    : HEX
+    ;
+
 chg_prefix_exists
     : PREFIX EXISTS ON BLOCK COMMA SNO COLON HEX len
     ;
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj 
-                               scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? undo_info? begin_trans? buext_info? kdo_undo_info? ktb_redo_info? block_cleanout_record? column_info?
               |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid? datafile_resize_marker?
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
               )
@@ -271,12 +283,40 @@ ktudbu_redo
     : KTUDBU REDO ':' slt rci opc objn objd tsn
     ;
 
-undo_type
-    : UNDO TYPE ':'  REGULAR UNDO BEGIN TRANS 
+undo_info
+    : undo_type user_undo_done? last_buffer_split temp_object tablespace_undo user_only?
     ;
 
+undo_type
+    : '['? UNDO TYPE ']'? regular_undo    
+    ;
+
+begin_trans
+    : BEGIN TRANS begin_trans_info
+    ;
+
+begin_trans_info
+    : prev_ctl_uba prev_ctl_max_cmt_scn prev_tx_cmt_scn txn_start_scn logon_user prev_brb prev_bcl
+    ;
+
+regular_undo
+    : REGULAR UNDO
+    ;
+
+
+user_undo_done
+    : '[' USER UNDO DONE ']'? NO
+    | '[' USER UNDO DONE ']'? YES
+    ;
+
+user_only
+    : '['? USER ONLY ']'? NO
+    | '['? USER ONLY ']'? YES
+    ;
+
+
 last_buffer_split
-    : LAST BUFFER SPLIT ':'  last_buffer_split_value
+    : '[' LAST BUFFER SPLIT ']'? ':'?  last_buffer_split_value
     ;
 
 last_buffer_split_value
@@ -285,7 +325,7 @@ last_buffer_split_value
     ;
 
 temp_object
-    : TEMP OBJECT ':' temp_object_value
+    : '['? TEMP OBJECT ']'?  temp_object_value
     ;
 
 
@@ -293,6 +333,18 @@ temp_object_value
     : YES
     | NO
     ;
+
+tablespace_undo
+    : '['? TABLESPACE UNDO ']'? tablespace_undo_value
+    ;
+
+tablespace_undo_value
+    : YES
+    | NO
+    ;
+
+
+
 
 object_uba
     : HEX prev_ctl_uba
@@ -308,7 +360,7 @@ prev_ctl_max_cmt_scn
 
 
 prev_tx_cmt_scn
-    : PREV TX CMT SCN scn
+    : PREV TX CMT scn
     ;
 
 txn_start_scn
@@ -328,6 +380,9 @@ prev_bcl
     : PREV BCL ':' HEX
     ;
 
+buext_info
+    : buext_idx flg2
+    ;
 
 buext_idx
     : BUEXT IDX ':' HEX
@@ -337,13 +392,177 @@ flg2
     : FLG2 ':' HEX
     ;
 
+col_info
+    : COL HEX ':' col_values
+    ;
+
+col_values
+    : NULL_COLUMN_VALUE {std::cout << "FOUND NULL COLUMN\n"; }
+    | HEXBYTE+ {std::cout << "found HEXBYTE \n"; }
+    ;
+
+kdo_op_code_info
+    : kdo_op_code kdo_itli_info  tabn_info ncol_info
+    | kdo_op_code kdo_itli_info  tabn_info fb_info nrid
+    ;
+
+kdo_itli_info
+   : kdo_itli ispac maxfr
+   ;
+
+maxfr
+   : MAXFR ':' maxfr_value
+   ;
+
+maxfr_value
+   : HEX
+   ;
+
+
+ispac
+   : ISPAC ':' ispac_value
+   ;
+
+ispac_value
+   : HEX
+   ;
+
+
+tabn_info
+   : tabn tabn_slot flag lock ckix
+   | tabn tabn_slot size_delt 
+   ;
+
+size_delt
+   : SIZE '/' DELT ':' size_delt_value
+   ;
+
+size_delt_value
+   : HEX
+   ;
+
+nrid 
+   : NRID ':' nrid_value
+   ;
+
+nrid_value
+   : HEX DOT HEX
+   ;
+   
+fb_info
+   : fb lb cc
+   ;
+
+fb
+   : FB ':' fb_value
+   ;
+
+fb_value
+   : FB_FLAG_VALUE
+   ;
+
+lb
+   : LB ':' lb_value
+   ;
+
+lb_value
+   : HEX
+   ;
+
+cc
+   : CC ':' cc_value
+   ;
+
+cc_value
+   : HEX
+   ;
+
+tabn
+   : TABN ':' tabn_value
+   ;
+
+tabn_value
+   : HEX
+   ;
+
+tabn_slot
+   : SLOT ':' tabn_slot_value
+   ;
+
+tabn_slot_value
+   : HEX '(' HEX ')'
+   ;
+
+flag
+   : FLAG ':' flag_value
+   ;
+
+flag_value
+   : HEX
+   ;
+
+lock
+   : LOCK ':' lock_value
+   ;
+
+lock_value
+   : HEX
+   ;
+
+ckix
+   : CKIX ':' ckix_value
+   ;
+
+ckix_value
+   : HEX
+   ;
+
+ncol_info
+   : ncol nnew size
+   ;
+
+ncol
+   : NCOL ':' ncol_value
+   ;
+
+ncol_value
+   : HEX
+   ;
+
+nnew
+   : NNEW ':' nnew_value
+   ;
+
+nnew_value
+   : HEX
+   ;
+
+size
+   : SIZE ':' size_value
+   ;
+
+size_value
+   : '-'? HEX
+   ; 
+
+kdo_itli
+   : ITLI ':' kdo_itli_value 
+   ;
+
+kdo_itli_value
+   : HEX
+   ;
+
 kdo_op_code
-    : KDO OP CODE rp_dependencies
+    : KDO OP CODE ':' rp_dependencies
     ;
 
 rp_dependencies
     : DRP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | URP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | IRP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     ;
+
 
 bdba
     : BDBA ':' bdba_value
@@ -378,9 +597,21 @@ xa_flags_value
     ;
 
 
+ktb_redo_info
+   : KTB REDO ktb_redo_clause
+   ;
+
+kdo_undo_info
+   : kdo_undo_record ktb_redo_clause
+   ;
 
 kdo_undo_record
-   : KDO UNDO RECORD ':' KTB REDO
+   : KDO UNDO RECORD ':' KTB REDO 
+   ;
+
+
+ktb_redo_clause
+   : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 kdo_op_code_info
    ;
 
 ktb_redo_op1
@@ -388,7 +619,11 @@ ktb_redo_op1
    ;
 
 ktb_redo_compat_bit
-   : COMPAT BIT '(' POST MINUS_ELEVEN ')'
+   : COMPAT BIT ':' compat_bit_value '(' POST MINUS_ELEVEN ')'
+   ;
+
+compat_bit_value
+   : HEX
    ;
 
 padding
@@ -431,7 +666,7 @@ itli_entries
    ;
 
 itli
-   : ITLI itli_value flg scn
+   : ITLI ':' itli_value flg scn
    ;
 
 
@@ -504,7 +739,7 @@ opc_value
 
 
 ktudh_redo
-    : KTUDH REDO ':' slt sqn flg siz fbi
+    : KTUDH REDO ':' slt sqn flg siz fbi uba pxid
     ;
 
 fbi
@@ -640,6 +875,14 @@ xid_value
     : HEX '.' HEX '.' HEX
     ;
 
+pxid
+    : PXID ':' pxid_value
+    ;
+
+pxid_value
+    : HEX '.' HEX '.' HEX
+    ;
+
 layer_opcode
     : OP ':' layer DOT opcode
     ;
@@ -674,6 +917,7 @@ flg
 
 flg_value
     : HEX
+    | '(' OPT EQUAL HEX WHR EQUAL HEX ')'
     ;
 
 con_id
@@ -713,8 +957,7 @@ column_value
     ;
 
 block_cleanout_record
-    : BLOCK CLEANOUT RECORD COMMA scn ver opt bigscn compact spare COMMA ENTRIES FOLLOW DOT DOT DOT
-    | BLOCK CLEANOUT RECORD COMMA scn ver opt ENTRIES FOLLOW DOT DOT DOT  itli_entries+
+    : BLOCK CLEANOUT RECORD COMMA scn ver opt bigscn? compact? spare? COMMA ENTRIES FOLLOW DOT DOT DOT  itli_entries+
     ;
 
 opt
@@ -738,7 +981,7 @@ bigscn
     ;
 
 compact:
-    COMPACT (Y|N)
+    COMPACT ':' (Y|N)
     ;
 
 spare
