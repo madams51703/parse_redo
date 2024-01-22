@@ -915,6 +915,36 @@ void enterNew_size(RedoParser::New_sizeContext * /*ctx*/)  { }
 void exitNew_size(RedoParser::New_sizeContext * /*ctx*/)  { }
 void enterNew_size_value(RedoParser::New_size_valueContext * /*ctx*/)  { }
 void exitNew_size_value(RedoParser::New_size_valueContext * /*ctx*/)  { }
+
+
+void enterTabn_qmi_slot_info(RedoParser::Tabn_qmi_slot_infoContext * ctx) { 
+//cout << "Entering Tabn_qmi_slot_info at line : " << ctx->getStart()->getLine() << "\n"; 
+}
+void exitTabn_qmi_slot_info(RedoParser::Tabn_qmi_slot_infoContext * ctx) { 
+//cout << "Exiting Tabn_qmi_slot_info at line : " << ctx->getStop()->getLine() << "\n"; 
+
+}
+
+
+void enterTabn_qmi_slot_info_do(RedoParser::Tabn_qmi_slot_info_doContext * ctx )  {
+//cout << "Entering Tabn_qmi_slot_info_do at line : " << ctx->getStop()->getLine() << "\n";
+
+ }
+void exitTabn_qmi_slot_info_do(RedoParser::Tabn_qmi_slot_info_doContext * ctx) { 
+//cout << "Exiting  Tabn_qmi_slot_info_do at line : " << ctx->getStop()->getLine() << "\n";
+
+}
+void enterTabn_qm_slot(RedoParser::Tabn_qm_slotContext * ctx) {
+//cout << "Entering  Tabn_qm_slot at line : " << ctx->getStart()->getLine() << "\n";
+
+ }
+void exitTabn_qm_slot(RedoParser::Tabn_qm_slotContext * ctx) {
+//cout << "Exiting  Tabn_qm_slot at line : " << ctx->getStop()->getLine() << "\n";
+
+ }
+
+
+
 void enterEveryRule(antlr4::ParserRuleContext * /*ctx*/)  { }
 void exitEveryRule(antlr4::ParserRuleContext * /*ctx*/)  { }
 void visitTerminal(antlr4::tree::TerminalNode * /*node*/)  { }

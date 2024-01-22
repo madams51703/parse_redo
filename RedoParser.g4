@@ -23,12 +23,41 @@ redo_info
     ;
 
 redo_record
-    : REDO RECORD MINUS thread rba len vld con_uid? scn subscn date_value lwn_info?
+    :  REDO RECORD MINUS thread rba len vld con_uid? scn subscn date_value lwn_info?
     ;
 
 change_records
     : change+
     ;
+
+block_written
+    : BLOCK WRITTEN MINUS afn rdba bft non_bft scn seq flg
+    ;
+
+rdba
+    : RDBA ':' rdba_value
+    ;
+
+rdba_value
+    : HEX
+    ;
+
+bft
+    : BFT ':' bft_value
+    ;
+
+bft_value
+    : LPAREN HEX COMMA HEX RPAREN
+    ;
+
+non_bft
+    : NONBFT ':' non_bft_value
+    ;
+
+non_bft_value
+    : LPAREN HEX COMMA HEX RPAREN
+    ;
+
 
 thread
     : THREAD ':' thread_number
@@ -110,11 +139,17 @@ chg_prefix_exists
     : PREFIX EXISTS ON BLOCK COMMA SNO COLON HEX len
     ;
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? undo_info? begin_trans? buext_info? kdo_undo_info? ktb_redo_info? block_cleanout_record? column_info?
-              |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid? datafile_resize_marker?
-              |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info?
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? undo_info? begin_trans? buext_info? kdo_undo_info? index_undo_info? ktb_redo_info? block_cleanout_record? column_info? block_written*
+              |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid? datafile_resize_marker? block_written*
+              |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written*
               )
     ;
+
+index_undo_info
+   : INDEX UNDO FOR LEAF KEY OPERATIONS
+   | INDEX REDO LPAREN KDXLIN RPAREN ':' INSERT LEAF ROW
+   ;
+
 
 ktudbr_redo
     :  KTUDBR REDO ':'  DISABLE BLOCK LEVEL RECO ON xid
@@ -203,8 +238,26 @@ nfl_value
     ;
 
 ktsfrblnk_redo
-    : KTSFRBLNK REDO ':' OPCODE ':' ktsfrblnk_redo_opcode
+    : KTSFRBLNK REDO ':' OPCODE ':' ktsfrblnk_redo_opcode next_dba  ktsfrblnk_itli
     ;
+
+next_dba
+    : NEXT DBA ':' next_dba_value
+    ;
+
+next_dba_value
+    :HEX
+    ;
+
+ktsfrblnk_itli
+    : ITLI ':' ktsfrblnk_itli_value
+    ;
+
+ktsfrblnk_itli_value
+    : HEX
+    ;
+
+
 
 ktsfrblnk_redo_opcode
     : LWRT
@@ -258,8 +311,53 @@ ktecush_redo
     ;    
 
 ktsfrgrp_redo
-    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':'
+    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':'  ktsfrgrp_opcode ktsfrgrp_slot ktsfrgrp_flag ccnt head tail
     ;
+
+head
+   : HEAD ':'  head_value
+   ;
+
+head_value
+   : HEX
+   ;
+
+tail
+   : TAIL ':' tail_value
+   ;
+
+tail_value
+   : HEX
+   ;
+
+ktsfrgrp_flag
+    : FLAG ':' EQUAL HEX XID OR SLOT HEX 
+    ;
+
+ccnt
+   : CCNT ':' ccnt_value
+   ;
+
+ccnt_value 
+   : HEX DOT HEX DOT HEX
+   ;
+
+ktsfrgrp_opcode
+    : OPCODE ':' ktsfrgrp_opcode_value
+    ;
+
+ktsfrgrp_opcode_value
+    : LUPD_UNLBLK LPAREN UNLINK BLOCK RPAREN
+    ;
+
+ktsfrgrp_slot
+    :SLOT NO ':' ktsfrgrp_slot_value COMMA COUNT ':'  HEX
+    ;
+
+
+ktsfrgrp_slot_value
+   : HEX
+   ;
 
 ktubl_redo
    : KTUBL REDO ':' slt rci opc LSQUARE objn objd tsn RSQUARE
@@ -393,17 +491,40 @@ flg2
     ;
 
 col_info
-    : COL HEX ':' col_values
+    : star_date? COL HEX ':' '[' col_element_count_value ']' col_values
+    | star_date? COL HEX ':' NULL_COLUMN_VALUE
     ;
 
+col_element_count_value
+    : HEX
+    ;
+ 
 col_values
-    : NULL_COLUMN_VALUE {std::cout << "FOUND NULL COLUMN\n"; }
-    | HEXBYTE+ {std::cout << "found HEXBYTE \n"; }
+    : NULL_COLUMN_VALUE 
+    | hex_byte+ 
+    ;
+
+hex_byte
+    : HEX
     ;
 
 kdo_op_code_info
     : kdo_op_code kdo_itli_info  tabn_info ncol_info
     | kdo_op_code kdo_itli_info  tabn_info fb_info nrid
+    | kdo_op_code kdo_itli_info  tabn_info fb_info null_emum null_enum_list null_enum+
+    | kdo_op_code kdo_itli_info  tabn_info+
+    ;
+
+null_emum
+    : NULL ':' 
+    ;
+
+null_enum_list
+   :HEX+
+   ;
+
+null_enum
+    : '-'
     ;
 
 kdo_itli_info
@@ -429,8 +550,15 @@ ispac_value
 
 
 tabn_info
-   : tabn tabn_slot flag lock ckix
-   | tabn tabn_slot size_delt 
+   : tabn star_date? tabn_slot flag lock ckix
+   | tabn star_date?  tabn_slot size_delt 
+   | tabn lock nrow tabn_qmd_slot_info 
+   | tabn lock nrow tabn_qmi_slot_info+ 
+   | tabn tabn_slot
+   ;
+
+star_date
+   : STARDATE LPAREN CDBROOT LPAREN HEX RPAREN RPAREN
    ;
 
 size_delt
@@ -448,7 +576,27 @@ nrid
 nrid_value
    : HEX DOT HEX
    ;
-   
+  
+nrow
+   : NROW ':' nrow_value
+   ;
+
+nrow_value
+   : HEX
+   ;
+
+tl_info
+   : tl fb lb cc
+   ;
+
+tl
+   : TL ':' tl_value
+   ;
+
+tl_value
+   : HEX
+   ;
+ 
 fb_info
    : fb lb cc
    ;
@@ -474,6 +622,35 @@ cc
    ;
 
 cc_value
+   : HEX
+   ;
+
+
+tabn_qmd_slot_info
+   : tabn_qm_slot+
+   ;
+
+tabn_qmi_slot_info
+   : tabn_qmi_slot_info_do+
+   ;
+
+tabn_qmi_slot_info_do
+   : tabn_qm_slot tl_info star_date? many_cols 
+   ;
+
+many_cols
+  : col_info+
+  ;
+
+tabn_qm_slot
+   : star_date? SLOT '[' tabn_qm_slot_idx ']' ':' tabn_qm_slot_value
+   ;
+
+tabn_qm_slot_idx
+   : HEX
+   ;
+
+tabn_qm_slot_value
    : HEX
    ;
 
@@ -561,6 +738,8 @@ rp_dependencies
     : DRP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | URP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | IRP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | QMD ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | QMI ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     ;
 
 
@@ -611,7 +790,91 @@ kdo_undo_record
 
 
 ktb_redo_clause
-   : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 kdo_op_code_info
+   : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 dump_kd_info? kdo_op_code_info?
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_leaf 
+   ;
+
+insert_leaf
+   : REDO ':' HEX SINGLE FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX insert_key keydata?
+   ;
+
+sno
+   : SNO ':' sno_value
+   ;
+
+sno_value
+   : HEX
+   ;
+
+insert_key
+   : INSERT KEY ':' LPAREN HEX RPAREN ':' insert_key_value
+   ;
+
+insert_key_value
+   : HEX+
+   ;
+
+keydata
+   : KEYDATA ':' LPAREN HEX RPAREN ':' keydata_value
+   ;
+
+keydata_value
+   : HEX+
+   ;
+
+dump_kd_info
+   : dump_kdilk kdxlpu kdx_key
+   ;
+
+kdxlpu
+   : LPAREN KDXLPU RPAREN ':' PURGE LEAF ROW
+   ;
+
+kdx_key
+   : KEY ':' LPAREN HEX RPAREN ':' kdx_key_value
+   ;
+
+kdx_key_value
+   : HEX+
+   ;
+
+
+
+dump_kdilk
+   : DUMP KDILK ':' ITL EQUAL HEX COMMA kdxlkflg sdc indexid kdx_block
+   ;
+
+kdxlkflg
+   : KDXLKFLG EQUAL kdxlkflg_value
+   ;    
+
+
+kdxlkflg_value
+   :HEX
+   ;
+
+sdc
+   : SDC EQUAL sdc_value
+   ;
+
+sdc_value
+   : HEX
+   ;
+
+indexid
+   : INDEXID EQUAL indexid_value
+   ;
+
+indexid_value
+   : HEX
+   ;
+
+kdx_block
+   : BLOCK EQUAL kdx_block_value
+   ;
+
+kdx_block_value
+   : HEX
    ;
 
 ktb_redo_op1
@@ -638,6 +901,11 @@ ktb_redo_op2
    : OP ':' ktb_redo_op_l
    | OP ':' ktb_redo_op_f
    | OP ':' ktb_redo_op_c
+   | OP ':' ktb_redo_op_Z
+   ;
+
+ktb_redo_op_Z
+   : Z 
    ;
 
 ktb_redo_op_l
@@ -657,7 +925,7 @@ ktb_redo_op_c
    ;
 
 ktb_redo_op_f
-   : F xid uba block_cleanout_record
+   : F xid uba block_cleanout_record? 
    ;
 
 
@@ -739,8 +1007,18 @@ opc_value
 
 
 ktudh_redo
-    : KTUDH REDO ':' slt sqn flg siz fbi uba pxid
+    : KTUDH REDO ':' slt sqn flg siz fbi uba pxid pdbuid?
     ;
+
+
+pdbuid
+    : PDBUID ':' pdbuid_value
+    ;
+
+pdbuid_value
+    : HEX
+    ;
+    
 
 fbi
    : FBI ':' fbi_value
@@ -841,6 +1119,10 @@ chg_afn
 
 afn_value
     : HEX
+    ;
+
+afn
+    : AFN ':' afn_value
     ;
 
 dba

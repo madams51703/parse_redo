@@ -16,11 +16,12 @@ int main(int argc, char *argv[]) {
 		ANTLRInputStream input(RedoParserFile);
 		RedoLexer lexer(&input);
 		CommonTokenStream tokens(&lexer);
-
-//		tokens.fill();
-//		for (auto token : tokens.getTokens()) {
-//			std::cout << token->toString() << std::endl;
-//		}
+/*
+		tokens.fill();
+		for (auto token : tokens.getTokens()) {
+			std::cout << token->toString() << std::endl;
+		}
+*/
 
 		RedoParser parser(&tokens);
 
