@@ -624,7 +624,7 @@ int i=0;
         change_vectors_at_redo_record=number_of_change_vectors;
 
  }
-void enterRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { cout << "In Redo Info\n" ;}
+void enterRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { /* cout << "In Redo Info\n" ; */ }
 void exitRedo_info(RedoParser::Redo_infoContext * /*ctx*/)  { }
 void enterRedo_record(RedoParser::Redo_recordContext * ctx)  {  }
 void exitRedo_record(RedoParser::Redo_recordContext * ctx)  { }

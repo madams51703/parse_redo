@@ -139,15 +139,95 @@ chg_prefix_exists
     : PREFIX EXISTS ON BLOCK COMMA SNO COLON HEX len
     ;
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? undo_info? begin_trans? buext_info? kdo_undo_info? index_undo_info? ktb_redo_info? block_cleanout_record? column_info? block_written*
-              |  change_number media_recovery_marker con_id? scn seq layer_opcode enc flg? xid? datafile_resize_marker? block_written*
-              |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written*
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? undo_info? begin_trans? buext_info? kdo_undo_info? index_undo_info? ktb_redo_info? block_cleanout_record? column_info? block_written* bitmap_redo?
+              |  change_number media_recovery_marker con_id?  scn seq layer_opcode enc flg? standby_metadata_info? xid? datafile_resize_marker? block_written*
+              |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written* bitmap_redo?
               )
+    ;
+
+bitmap_redo
+    : REDO ON LEVEL bitmap_level_value BITMAP BLOCK
+          REDO bitmap_redo_op
+    ;
+
+bitmap_redo_op
+    : FOR STATE CHANGE_RAW len offset newstate
+    | TO MARK BLOCK FREE  redo_to_mark_block_free
+    ;
+
+redo_to_mark_block_free
+    : offset length xidslot state ncmt  commit_slot_list
+    ;
+
+length
+    : LENGTH ':' length_value
+    ;
+
+length_value
+    : HEX
+    ;
+
+state
+    : STATE ':' state_value
+    ;
+
+state_value
+    : HEX
+    ;
+
+xidslot
+    : XIDSLOT ':' xidslot_value
+    ;
+
+xidslot_value
+    : HEX
+    ;
+
+ncmt
+    : NCMT ':' ncmt_value
+    ;
+
+ncmt_value
+    : HEX
+    ;
+
+commit_slot_list
+    : COMMIT SLOT LIST locking_transaction
+    ;
+
+locking_transaction
+    : LOCKING TRANSACTION ':' locking_transaction_value
+    ;
+
+locking_transaction_value
+    : HEX DOT HEX DOT HEX
+    ;
+
+offset
+    : OFFSET ':' offset_value
+    ;
+
+offset_value
+    : HEX
+    ;
+
+newstate
+    : NEWSTATE ':' newstate_value
+    ;
+
+newstate_value
+    : HEX
+    ;
+
+
+bitmap_level_value
+    : HEX
     ;
 
 index_undo_info
    : INDEX UNDO FOR LEAF KEY OPERATIONS
    | INDEX REDO LPAREN KDXLIN RPAREN ':' INSERT LEAF ROW
+   | INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
    ;
 
 
@@ -510,21 +590,67 @@ hex_byte
 
 kdo_op_code_info
     : kdo_op_code kdo_itli_info  tabn_info ncol_info
-    | kdo_op_code kdo_itli_info  tabn_info fb_info nrid
-    | kdo_op_code kdo_itli_info  tabn_info fb_info null_emum null_enum_list null_enum+
+    | kdo_op_code kdo_itli_info  tabn_info fb_info  nrid  null_emum null_enum_list null_enum_info many_cols? 
+/*
+    | kdo_op_code kdo_itli_info  tabn_info fb_info curc_info? null_emum null_enum_list null_enum_info many_cols?
+*/
+    | kdo_op_code kdo_itli_info  tabn_info fb_info curc_info? null_emum null_enum_list? null_enum_info? many_cols?
     | kdo_op_code kdo_itli_info  tabn_info+
     ;
 
+curc_info
+    : curc comc pk nk
+    ;
+
+nk
+    : NK ':' nk_value
+    ;
+
+nk_value
+    : HEX DOT HEX
+    ;
+
+pk 
+    : PK ':' pk_value
+    ;
+
+pk_value
+    : HEX DOT HEX
+    ;
+
+comc
+    : COMC ':' comc_value
+    ;
+
+comc_value
+    : HEX
+    ;
+ 
+curc
+    : CURC ':' curc_value 
+    ;
+
+curc_value
+    : HEX
+    ;
+
+	
 null_emum
     : NULL ':' 
     ;
 
 null_enum_list
    :HEX+
+   |MINUS+
+   ;
+
+null_enum_info
+   : null_enum+
    ;
 
 null_enum
-    : '-'
+    : MINUS
+    | N
     ;
 
 kdo_itli_info
@@ -559,6 +685,7 @@ tabn_info
 
 star_date
    : STARDATE LPAREN CDBROOT LPAREN HEX RPAREN RPAREN
+   | STARDATE
    ;
 
 size_delt
@@ -598,15 +725,15 @@ tl_value
    ;
  
 fb_info
-   : fb lb cc
+   : fb lb cc cki?
    ;
 
 fb
-   : FB ':' fb_value
+   : FB_COLON  fb_value
    ;
 
 fb_value
-   : FB_FLAG_VALUE
+   : fb_flag_values
    ;
 
 lb
@@ -618,10 +745,18 @@ lb_value
    ;
 
 cc
-   : CC ':' cc_value
+   : CC_COLON cc_value
    ;
 
 cc_value
+   : HEX
+   ;
+
+cki
+   : CKI ':' cki_value
+   ;
+
+cki_value
    : HEX
    ;
 
@@ -663,11 +798,19 @@ tabn_value
    ;
 
 tabn_slot
-   : SLOT ':' tabn_slot_value
+   : SLOT ':' tabn_slot_value tabn_slot_to?
    ;
 
 tabn_slot_value
-   : HEX '(' HEX ')'
+   : HEX '('? HEX? ')'?
+   ;
+
+tabn_slot_to
+   : TO ':' tabn_slot_to_value
+   ;
+
+tabn_slot_to_value
+   : HEX
    ;
 
 flag
@@ -740,6 +883,7 @@ rp_dependencies
     | IRP ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | QMD ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | QMI ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | LKR ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     ;
 
 
@@ -792,10 +936,31 @@ kdo_undo_record
 ktb_redo_clause
    : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 dump_kd_info? kdo_op_code_info?
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_leaf 
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 delete_leaf 
    ;
 
 insert_leaf
    : REDO ':' HEX SINGLE FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX insert_key keydata?
+   ;
+
+delete_leaf
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? delete_leaf_slots?
+   ;
+
+number_of_keys
+   : NUMBER OF KEYS ':' number_of_keys_value
+   ;
+
+number_of_keys_value
+   : HEX
+   ;
+
+delete_leaf_slots
+   : SLOTS ':' delete_leaf_slots_value
+   ;
+
+delete_leaf_slots_value
+   : HEX+
    ;
 
 sno
@@ -823,8 +988,49 @@ keydata_value
    ;
 
 dump_kd_info
-   : dump_kdilk kdxlpu kdx_key
+   : dump_kdilk kdxlpu number_of_keys? key_sizes? kdx_key selflock? kdx_bitmap
+   | dump_kdilk kdxlre kdx_key kdx_bitmap?
+   | dump_kdilk kdxlre number_of_keys key_sizes kdx_key selflock kdx_bitmap
+   | dump_kdilk kdxlde kdx_key
    ;
+
+kdx_bitmap
+   : KEYDATA? FSLASH? BITMAP ':' LPAREN HEX RPAREN ':' kdx_bitmap_value
+   ;
+
+kdx_bitmap_value
+   : HEX+
+   ;
+
+
+selflock
+   : SELFLOCK ':' LPAREN HEX RPAREN ':' selflock_value
+   ;
+
+selflock_value
+   : HEX+
+   ;
+
+
+key_sizes
+   : KEY SIZES ':' key_sizes_value
+   ;
+
+key_sizes_value
+   : HEX+
+   ;
+
+kdxlre
+   : LPAREN KDXLRE RPAREN ':' RESTORE LEAF ROW LPAREN CLEAR LEAF DELETE FLAGS RPAREN
+   ;
+
+
+
+
+kdxlde
+   : INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
+   ;
+
 
 kdxlpu
    : LPAREN KDXLPU RPAREN ':' PURGE LEAF ROW
@@ -835,7 +1041,7 @@ kdx_key
    ;
 
 kdx_key_value
-   : HEX+
+   : (HEX|star_date)+
    ;
 
 
@@ -913,12 +1119,9 @@ ktb_redo_op_l
    ;
 
 ktb_redo_flg
-   : FLG ':' ktb_redo_flg_value
+   : FLG ':' ktb_redo_flg_values
    ;
 
-ktb_redo_flg_value
-   : KTB_REDO_FLG_VALUE
-   ;
 
 ktb_redo_op_c
    : C uba
@@ -1309,3 +1512,38 @@ new_size:
 new_size_value:
     HEX
     ;
+
+standby_metadata_info
+    : standby_metadata_cache_invalidation kqr_info kgl_info
+    ;
+
+kgl_info
+    : KGL INFO ':' kgl_info_value+
+    ;
+
+kgl_info_value
+    : '[' HEX DOT HEX DOT HEX DOT HEX COMMA HEX ']'
+    ;
+
+kqr_info
+    : KQR INFO ':' kqr_info_value
+    ;
+
+kqr_info_value 
+    : '[' HEX COMMA HEX COMMA HEX ']'
+    ;
+
+
+standby_metadata_cache_invalidation
+    : STANDBY METADATA CACHE INVALIDATION
+    ;
+
+
+ktb_redo_flg_values
+    : (C|MINUS)(H|MINUS)(U|MINUS)(L|MINUS)
+    ;
+
+fb_flag_values
+    : (K|MINUS) (C|MINUS) (H|MINUS) MINUS (F|MINUS) (L|MINUS) MINUS MINUS
+    ;
+
