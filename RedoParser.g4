@@ -100,7 +100,11 @@ vld_value
     ;
 
 scn
-    : SCN ':' wrap (DOT base)?
+    : SCN ':' scn_value
+    ;
+
+scn_value
+    : wrap (DOT base)?
     ;
 
 wrap
@@ -226,9 +230,49 @@ bitmap_level_value
 
 index_undo_info
    : INDEX UNDO FOR LEAF KEY OPERATIONS
+   | INDEX GENERAL UNDO LPAREN BRANCH RPAREN OPERATIONS
+   | INDEX REDO LPAREN KDXAIR RPAREN ':' APPLY XAT DO TO ITL HEX LPAREN COUNT EQUAL HEX RPAREN
+   | INDEX REDO LPAREN KDXBPU RPAREN ':' PURGE BRANCH BLOCK ROW COMMA COUNT EQUAL HEX
+   | INDEX REDO LPAREN KDXLEM RPAREN ':' LPAREN REDO RPAREN MAKE LEAF BLOCK EMPTY 
+   						 COMMA ITL EQUAL HEX COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXLIN RPAREN ':' INSERT LEAF ROW
+   | INDEX REDO LPAREN KDXLNE RPAREN ':' LPAREN COUNT EQUAL HEX RPAREN
+                                           INIT HEADER OF NEWLY ALLOCATED LEAF BLOCK
    | INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
+   | INDEX REDO LPAREN KDXLOK RPAREN ':' LOCK BLOCK COMMA COUNT EQUAL HEX
+   | INDEX REDO LPAREN KDXLPR RPAREN ':' LPAREN REDO RPAREN 
+	SET (KDXLENXT
+            |KDXLEPRV
+	    )	
+	     EQUAL HEX COMMA ITL EQUAL HEX COMMA COUNT EQUAL HEX
+   | INDEX REDO LPAREN KDXULO RPAREN ':' CLEAR BLOCK OPCODE DURING COMMIT
    ;
+
+
+lock_block
+   : lock_itl
+   ;
+
+lock_itl
+   : LOCK ITL HEX OPERATION EQUAL HEX COMMA PRE MINUS SPLIT
+   ;
+
+seghdr_dba
+   : SEGHDR DBA ':' seghdr_dba_value
+   ;
+
+seghdr_dba_value
+   : HEX
+   ;
+
+unlock_block
+   : UNLOCK BLOCK LPAREN HEX RPAREN ':' unlock_block_value
+   ;
+
+unlock_block_value
+   : HEX
+   ;
+
 
 
 ktudbr_redo
@@ -937,14 +981,28 @@ ktb_redo_clause
    : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 dump_kd_info? kdo_op_code_info?
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_leaf 
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 delete_leaf 
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 lock_block 
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 purge_branch 
+   ;
+
+purge_branch
+   : REDO  itl purge_slot
+   ;
+
+purge_slot
+   : SLOT  purge_slot_value
+   ;
+
+purge_slot_value
+   : HEX
    ;
 
 insert_leaf
-   : REDO ':' HEX SINGLE FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX insert_key keydata?
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? leaf_slots? insert_key  each_key_size_is? keydata?
    ;
 
 delete_leaf
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? delete_leaf_slots?
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? leaf_slots?
    ;
 
 number_of_keys
@@ -955,11 +1013,11 @@ number_of_keys_value
    : HEX
    ;
 
-delete_leaf_slots
-   : SLOTS ':' delete_leaf_slots_value
+leaf_slots
+   : SLOTS ':' leaf_slots_value
    ;
 
-delete_leaf_slots_value
+leaf_slots_value
    : HEX+
    ;
 
@@ -969,6 +1027,14 @@ sno
 
 sno_value
    : HEX
+   ;
+
+each_key_size_is
+   : EACH KEY SIZE IS ':' each_key_size_value
+   ;
+
+each_key_size_value
+   : HEX+
    ;
 
 insert_key
@@ -988,10 +1054,17 @@ keydata_value
    ;
 
 dump_kd_info
-   : dump_kdilk kdxlpu number_of_keys? key_sizes? kdx_key selflock? kdx_bitmap
+   : dump_kdilk kdxlpu number_of_keys? key_sizes? kdx_key selflock? kdx_bitmap?
    | dump_kdilk kdxlre kdx_key kdx_bitmap?
    | dump_kdilk kdxlre number_of_keys key_sizes kdx_key selflock kdx_bitmap
    | dump_kdilk kdxlde kdx_key
+   | dump_kdige 
+	(restore_block_before_image
+	 |restore_block_to_btree
+	 |set_leaf_block_previous_link
+	 |branch_block_row_insert
+         |make_leaf_block_empty
+	)?
    ;
 
 kdx_bitmap
@@ -1024,7 +1097,13 @@ kdxlre
    : LPAREN KDXLRE RPAREN ':' RESTORE LEAF ROW LPAREN CLEAR LEAF DELETE FLAGS RPAREN
    ;
 
+block_dba
+   : BLOCK DBA ':' block_dba_value
+   ;
 
+block_dba_value
+   : HEX
+   ;
 
 
 kdxlde
@@ -1044,7 +1123,9 @@ kdx_key_value
    : (HEX|star_date)+
    ;
 
-
+dump_kdige
+  : DUMP KDIGE ':' block_dba COMMA seghdr_dba unlock_block?
+  ;
 
 dump_kdilk
    : DUMP KDILK ':' ITL EQUAL HEX COMMA kdxlkflg sdc indexid kdx_block
@@ -1107,6 +1188,7 @@ ktb_redo_op2
    : OP ':' ktb_redo_op_l
    | OP ':' ktb_redo_op_f
    | OP ':' ktb_redo_op_c
+   | OP ':' ktb_redo_op_r
    | OP ':' ktb_redo_op_Z
    ;
 
@@ -1120,6 +1202,65 @@ ktb_redo_op_l
 
 ktb_redo_flg
    : FLG ':' ktb_redo_flg_values
+   ;
+
+ktb_redo_op_r
+   : R itc itl_list kdxln_info? dumping_row_index?
+   ;
+
+itl_list
+   : ITL XID UBA FLAG LCK SCN FSLASH FSC itl_list_entries+
+   ;
+
+itl_list_entries
+   : itl_list_itl itl_list_xid itl_list_uba itl_list_flag
+        itl_list_lck itl_list_scn_or_fsc_indicator itl_list_scn_or_fsc
+   ;
+
+itl_list_uba
+   : uba_value
+   ;
+
+itl_list_itl
+   : itl_value
+   ;
+
+itl_list_xid
+   : xid_value
+   ;
+
+itl_list_list_uba
+   : uba_value
+   ;
+
+itl_list_flag
+   : ktb_redo_flg_values
+   ;
+
+itl_list_lck
+   : HEX
+   ;
+
+itl_list_scn_or_fsc_indicator
+   : FSC
+   | SCN
+   ;
+
+itl_list_scn_or_fsc
+   : scn_value
+   | fsc_value
+   ;
+
+fsc_value
+   : scn_value
+   ;
+
+itc
+   : ITC ':' itc_value
+   ;
+
+itc_value
+   : HEX
    ;
 
 
@@ -1538,9 +1679,140 @@ standby_metadata_cache_invalidation
     : STANDBY METADATA CACHE INVALIDATION
     ;
 
+restore_block_to_btree
+    : RESTORE BLOCK TO B MINUS TREE LPAREN HEX RPAREN ':' HEX btree_block+
+    ;
+
+btree_block
+    : LPAREN HEX RPAREN ':' btree_block_image
+    ;
+   
+btree_block_image
+    : block_image
+    ;
+
+restore_block_before_image
+    : RESTORE BLOCK BEFORE IMAGE LPAREN HEX RPAREN ':' block_image
+    ;
+
+block_image
+    : HEX+
+    ;
+
+set_leaf_block_previous_link
+    : SET LEAF BLOCK PREVIOUS LINK LPAREN HEX RPAREN ':' previous_link
+    ;
+
+previous_link
+    : HEX+
+    ;
+
+branch_block_row_insert
+    : BRANCH BLOCK ROW INSERT branch_block_rows+
+    ;
+
+branch_block_rows
+    : LPAREN HEX RPAREN ':' HEX+
+    ;
+
+make_leaf_block_empty
+   : MAKE LEAF BLOCK EMPTY make_leaf_block_empty_clause
+   ;
+
+make_leaf_block_empty_clause
+   : LPAREN HEX RPAREN ':' HEX+
+   ;
+
+kdxln_info
+   : kdxlnitl kdxlnnco kdxlndsz kdxlncol kdxlnflg kdxlnnxt kdxlnprv new_block_has_rows
+   ;
+
+kdxlnitl
+   : KDXLNITL EQUAL kdxlnitl_value
+   ;
+
+kdxlnitl_value
+   : HEX
+   ;
+
+kdxlnnco
+   : KDXLNNCO EQUAL kdxlnnco_value
+   ;
+
+kdxlnnco_value
+   : HEX
+   ;
+
+kdxlndsz
+   : KDXLNDSZ EQUAL kdxlndsz_value
+   ;
+
+kdxlndsz_value
+   : HEX
+   ;
+
+kdxlncol
+   : KDXLNCOL EQUAL kdxlncol_value
+   ;
+
+kdxlncol_value
+   : HEX
+   ;
+
+kdxlnflg
+   : KDXLNFLG EQUAL kdxlnflg_value
+   ;
+
+kdxlnflg_value
+   : HEX
+   ;
+
+kdxlnnxt
+   : KDXLNNXT EQUAL kdxlnnxt_value
+   ;
+
+kdxlnnxt_value
+   : HEX
+   ;
+
+kdxlnprv
+   : KDXLNPRV EQUAL kdxlnprv_value
+   ;
+
+kdxlnprv_value
+   : HEX
+   ;
+
+new_block_has_rows
+   : NEW BLOCK HAS HEX ROWS
+   ;
+
+dumping_row_index
+   : DUMPING_ROW_INDEX dump_memory
+   ;
+
+dump_memory
+   : DUMP OF MEMORY FROM HEX TO HEX memory_info+
+   ;
+
+memory_info
+   : memory_address memory_line memory_display
+   ;
+
+memory_display
+   : MEMORY_DISPLAY
+   ;
+
+memory_address
+   : HEX
+   ;
+
+memory_line
+   : HEX HEX? HEX? HEX?
+   ;
 
 ktb_redo_flg_values
-    : (C|MINUS)(H|MINUS)(U|MINUS)(L|MINUS)
+    : ((C|MINUS)(B|H|MINUS)|HEX) (U|MINUS) (L|MINUS)
     ;
 
 fb_flag_values
