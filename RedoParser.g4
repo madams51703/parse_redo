@@ -14,12 +14,15 @@ redo_info
     :
       ktelk_redo
     | ktecush_redo
-    | ktucm_redo
+    | ktucm_redo rolled_back_transaction?
     | ktudb_redo
     | ktudh_redo
     | ktudbu_redo
     | ktsbifm_redo
+    | ktfbh_redo
+    | ktfbb_redo
     | ktudbr_redo
+    | kteop_redo
     ;
 
 redo_record
@@ -152,10 +155,49 @@ change
 bitmap_redo
     : REDO ON LEVEL bitmap_level_value BITMAP BLOCK
           REDO bitmap_redo_op
+    | BMB STATE CHANGE_RAW len offset state
+    | KTSPBFREDO MINUS FORMAT PAGETABLE DATABLOCK ktspbredo
+    ;
+
+ktspbredo
+    : parent_dba typ objd itls fmt_flag poff cscn inc_pound
+    ;
+
+fmt_flag
+    : FMT_FLAG ':' fmt_flag_value
+    ;
+
+fmt_flag_value
+    : HEX
+    ;
+
+poff
+    : POFF ':' poff_value
+    ;
+
+poff_value
+    : HEX
+    ;
+
+inc_pound
+    : INC_POUND ':' inc_pound_value
+    ;
+
+inc_pound_value
+    : HEX
+    ;
+
+parent_dba
+    : PARENT LPAREN L HEX RPAREN DBA ':' parent_dba_value
+    ;
+
+parent_dba_value
+    : HEX
     ;
 
 bitmap_redo_op
     : FOR STATE CHANGE_RAW len offset newstate
+    | TO SET REJECTION CODE len off rc state
     | TO MARK BLOCK FREE  redo_to_mark_block_free
     ;
 
@@ -228,16 +270,26 @@ bitmap_level_value
     : HEX
     ;
 
+bi_tran
+    : TRANS LAYER B DOT I DOT
+    ;
+
+
 index_undo_info
    : INDEX UNDO FOR LEAF KEY OPERATIONS
    | INDEX GENERAL UNDO LPAREN BRANCH RPAREN OPERATIONS
    | INDEX REDO LPAREN KDXAIR RPAREN ':' APPLY XAT DO TO ITL HEX LPAREN COUNT EQUAL HEX RPAREN
+   | INDEX REDO LPAREN KDXBIN RPAREN ':' INSERT BRANCH BLOCK ROW COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXBPU RPAREN ':' PURGE BRANCH BLOCK ROW COMMA COUNT EQUAL HEX
+   | INDEX REDO LPAREN KDXIMA RPAREN ':' RESTORE BEFORE BLOCK IMAGE COMMA COUNT EQUAL HEX bi_tran
+   | INDEX REDO LPAREN KDXIMA RPAREN ':' RESTORED BLOCK BEFORE IMAGE COMMA COUNT EQUAL HEX bi_tran
    | INDEX REDO LPAREN KDXLEM RPAREN ':' LPAREN REDO RPAREN MAKE LEAF BLOCK EMPTY 
    						 COMMA ITL EQUAL HEX COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXLIN RPAREN ':' INSERT LEAF ROW
    | INDEX REDO LPAREN KDXLNE RPAREN ':' LPAREN COUNT EQUAL HEX RPAREN
                                            INIT HEADER OF NEWLY ALLOCATED LEAF BLOCK
+   | INDEX REDO LPAREN KDXLNE RPAREN ':' LPAREN COUNT EQUAL HEX RPAREN 
+                                           INIT LEAF BLOCK BEING SPLIT init_leaf_block_being_split
    | INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
    | INDEX REDO LPAREN KDXLOK RPAREN ':' LOCK BLOCK COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXLPR RPAREN ':' LPAREN REDO RPAREN 
@@ -245,9 +297,14 @@ index_undo_info
             |KDXLEPRV
 	    )	
 	     EQUAL HEX COMMA ITL EQUAL HEX COMMA COUNT EQUAL HEX
+   | INDEX REDO LPAREN KDXLRE RPAREN ':' RESTORE LEAF ROW
    | INDEX REDO LPAREN KDXULO RPAREN ':' CLEAR BLOCK OPCODE DURING COMMIT
+   | INDEX REDO LPAREN KDXULO RPAREN ':' UNLOCK BLOCK DURING UNDO
    ;
 
+init_leaf_block_being_split
+   : ZEROED LOCK COUNT AND FREE SPACE COMMA KDXLENXT EQUAL HEX new_block_has_rows dumping_row_index? dumping_rows?
+   ;
 
 lock_block
    : lock_itl
@@ -273,6 +330,57 @@ unlock_block_value
    : HEX
    ;
 
+
+header_opcode
+   : HEADER OPCODE ':'
+   ;
+
+save
+   : SAVE ':' NO? pending_op?
+   ;
+
+pending_op
+   : PENDING OP
+   ;
+using_extent
+   : USING EXTENT ':'
+   ;
+
+begin
+   : BEGIN ':' begin_value
+   ;
+
+begin_value
+   : HEX
+   ;
+
+
+instance
+   : INSTANCE ':' instance_value
+   ;
+
+instance_value
+   : HEX
+   ;
+
+use_bits
+   : USE BITS ':' begin COMMA length COMMA instance
+   ;
+
+ktfbb_redo
+    : KTFBBREDO MINUS FILE BITMAP BLOCK REDO ':' use_bits
+    ;
+
+ktfbh_redo
+    : KTFBHREDO MINUS FILE SPACE HEADER REDO ':' header_opcode save (NO pending_op
+                                                                    |save_using
+                                                                    )
+    ;
+
+
+save_using
+    : using_extent begin COMMA length COMMA instance
+    ;
 
 
 ktudbr_redo
@@ -514,7 +622,7 @@ undo_type
     ;
 
 begin_trans
-    : BEGIN TRANS begin_trans_info
+    : BEGIN TRANS begin_trans_info?
     ;
 
 begin_trans_info
@@ -632,8 +740,25 @@ hex_byte
     : HEX
     ;
 
+kdo_info
+    : array_update
+    | vect 
+    ;
+
+vect
+    : VECT EQUAL HEX
+    ;
+
+array_update
+    : ARRAY UPDATE OF HEX ROWS ':'
+    ;
+
 kdo_op_code_info
-    : kdo_op_code kdo_itli_info  tabn_info ncol_info
+    : kdo_op_code_info_more+
+    ;
+
+kdo_op_code_info_more
+    : kdo_op_code kdo_itli_info kdo_info? tabn_info? ncol_info?
     | kdo_op_code kdo_itli_info  tabn_info fb_info  nrid  null_emum null_enum_list null_enum_info many_cols? 
 /*
     | kdo_op_code kdo_itli_info  tabn_info fb_info curc_info? null_emum null_enum_list null_enum_info many_cols?
@@ -745,7 +870,12 @@ nrid
    ;
 
 nrid_value
-   : HEX DOT HEX
+   : HEX DOT (HEX
+             |A
+             |B
+             |C
+             |F
+             )
    ;
   
 nrow
@@ -928,6 +1058,7 @@ rp_dependencies
     | QMD ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | QMI ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | LKR ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | HEX ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     ;
 
 
@@ -953,10 +1084,12 @@ xtype
 
 xtype_value
     : HEX
+    | XAXTYPE KDO_KDOM2
+    | XA
     ;
 
 xa_flags
-    : XA FLAGS ':' xa_flags_value
+    : FLAGS ':' xa_flags_value
     ;
 
 xa_flags_value
@@ -976,17 +1109,41 @@ kdo_undo_record
    : KDO UNDO RECORD ':' KTB REDO 
    ;
 
-
+itl_equal
+   : ITL EQUAL HEX
+   ;
 ktb_redo_clause
    : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 dump_kd_info? kdo_op_code_info?
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 itl_equal
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_leaf 
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_into_slot
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 delete_leaf 
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 lock_block 
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 purge_branch 
    ;
 
+insert_into_slot
+   : REDO itl INSERT INTO SLOT HEX COMMA child_dba new_key
+   ;
+
+child_dba
+   : CHILD DBA child_dba_value
+   ;
+
+child_dba_value
+   : HEX
+   ;
+
+new_key
+   : NEW KEY ':' LPAREN HEX RPAREN ':' new_key_value
+   ;
+
+new_key_value
+   : HEX+
+   ;
+
 purge_branch
-   : REDO  itl purge_slot
+   : REDO itl purge_slot
    ;
 
 purge_slot
@@ -994,7 +1151,7 @@ purge_slot
    ;
 
 purge_slot_value
-   : HEX
+   : MINUS? HEX
    ;
 
 insert_leaf
@@ -1058,11 +1215,13 @@ dump_kd_info
    | dump_kdilk kdxlre kdx_key kdx_bitmap?
    | dump_kdilk kdxlre number_of_keys key_sizes kdx_key selflock kdx_bitmap
    | dump_kdilk kdxlde kdx_key
+   | dump_kdilk kdxlup kdx_key
    | dump_kdige 
 	(restore_block_before_image
 	 |restore_block_to_btree
 	 |set_leaf_block_previous_link
 	 |branch_block_row_insert
+         |branch_block_row_purge
          |make_leaf_block_empty
 	)?
    ;
@@ -1105,6 +1264,9 @@ block_dba_value
    : HEX
    ;
 
+kdxlup
+   : LPAREN KDXLUP RPAREN ':' UPDATE KEYDATA IN ROW
+   ;
 
 kdxlde
    : INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
@@ -1145,7 +1307,7 @@ sdc
    ;
 
 sdc_value
-   : HEX
+   : MINUS? HEX
    ;
 
 indexid
@@ -1205,7 +1367,7 @@ ktb_redo_flg
    ;
 
 ktb_redo_op_r
-   : R itc itl_list kdxln_info? dumping_row_index?
+   : R itc itl_list kdxln_info? dumping_row_index? dumping_rows? data_block_bi?
    ;
 
 itl_list
@@ -1349,9 +1511,155 @@ opc_value
     : HEX '.' HEX
     ;
 
+kteop_redo
+    : KTEOP REDO MINUS extent_map_redo
+    ;
+
+sethwm
+    : SETHWM ':' 
+    ;
+    
+highwater
+    : HIGHWATER ':' ':' highwater_value
+    ;
+
+highwater_value
+    : HEX
+    ;
+
+ext_pound
+    : EXT_POUND ':' ext_pound_value
+    ;
+
+ext_pound_value
+    : HEX
+    ;
+
+blk_pound
+    : BLK_POUND ':' blk_pound_value
+    ;
+
+blk_pound_value
+    : HEX
+    ;
+
+ext_size
+    : EXT SIZE ':' ext_size_value
+    ;
+
+ext_size_value
+    : HEX
+    ;
+
+blocks_in_seg_hdr_freelist
+    : POUND_BLOCKS IN SEG DOT HDRS FREELISTS ':' blocks_in_seg_hdr_freelist_value
+    ;
+
+blocks_in_seg_hdr_freelist_value
+    : HEX
+    ;
+
+blocks_below
+    : POUND_BLOCKS BELOW ':'  blocks_below_value
+    ;
+
+blocks_below_value
+    : HEX
+    ;
+
+mapblk
+    : MAPBLK  mapblk_value
+    ;
+
+mapblk_value
+    : HEX
+    ;
+
+extent_map_redo
+    : REDO OPERATION ON EXTENT MAP (extent_map_redo_sethwm
+                                   |extent_map_redo_add
+				   )
+    ;
+
+at_offset
+    : AT OFFSET ':' at_offset_value
+    ;
+
+at_offset_value
+    : HEX
+    ;
+
+ctime
+    : CTIME ':' ctime_value
+    ;
+
+ctime_value
+    : HEX
+    ;
+
+exts
+    : EXTS ':' exts_value
+    ;
+
+exts_value
+    : HEX
+    ;
+
+lastmap
+    : LASTMAP ':' lastmap_value
+    ;
+
+lastmap_value
+    : HEX
+    ;
+
+mapcnt
+    : MAPCNT ':' mapcnt_value
+    ;
+
+mapcnt_value
+    : HEX
+    ;
+
+extent
+    : EXTENT ':' extent_value
+    ;
+
+extent_value
+    : HEX
+    ;
+
+add
+    : ADD ':' (TRUE
+              | FALSE
+              )
+    ;
+
+updxnt
+    : UPDXNT ':' extent add
+    ;
+
+setstat
+    : SETSTAT ':' exts blks lastmap mapcnt
+    ;
+
+addret
+    : ADDRET ':' offset ctime
+    ;
+
+
+extent_map_redo_add
+    : ADD ':' dba len at_offset addret setstat updxnt
+    ;
+     
+
+extent_map_redo_sethwm
+    : sethwm highwater ext_pound blk_pound ext_size blocks_in_seg_hdr_freelist blocks_below mapblk offset
+    ;
+
 
 ktudh_redo
-    : KTUDH REDO ':' slt sqn flg siz fbi uba pxid pdbuid?
+    : KTUDH REDO ':' slt sqn flg siz fbi uba pxid pdbuid? kteop_redo?
     ;
 
 
@@ -1404,6 +1712,22 @@ rec
 rec_value
     : HEX
     ;    
+
+off
+    : OFF ':' off_value
+    ;
+
+off_value
+    : HEX
+    ;
+
+rc
+    : RC ':' rc_value
+    ;
+
+rc_value
+    : HEX
+    ;
 
 rci
     : RCI ':' rci_value
@@ -1707,6 +2031,13 @@ previous_link
     : HEX+
     ;
 
+rolled_back_transaction
+    : ROLLED BACK TRANSACTION
+    ;
+branch_block_row_purge
+    : BRANCH BLOCK ROW PURGE branch_block_rows+
+    ;
+
 branch_block_row_insert
     : BRANCH BLOCK ROW INSERT branch_block_rows+
     ;
@@ -1783,12 +2114,28 @@ kdxlnprv_value
    : HEX
    ;
 
+cu_itl
+   : CU ITL COUNT MINUS HEX
+   ;
+
+lvec_size
+   : LVEC SIZE HEX
+   ;
+
 new_block_has_rows
    : NEW BLOCK HAS HEX ROWS
    ;
 
+data_block_bi
+   : DATA_BLOCK_BI dump_memory
+   ;
+
 dumping_row_index
    : DUMPING_ROW_INDEX dump_memory
+   ;
+
+dumping_rows
+   : DUMPING_ROWS dump_memory AUTO MINUS PREFIX KDXLNCOL EQUAL MINUS HEX cu_itl lvec_size
    ;
 
 dump_memory
@@ -1797,6 +2144,7 @@ dump_memory
 
 memory_info
    : memory_address memory_line memory_display
+   | STARDATE2
    ;
 
 memory_display
