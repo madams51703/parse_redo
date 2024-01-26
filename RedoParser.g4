@@ -21,6 +21,7 @@ redo_info
     | ktsbifm_redo
     | ktfbh_redo
     | ktfbb_redo
+    | ktfbn_redo
     | ktudbr_redo
     | kteop_redo
     ;
@@ -145,11 +146,21 @@ nst_value
 chg_prefix_exists
     : PREFIX EXISTS ON BLOCK COMMA SNO COLON HEX len
     ;
+
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsfm_redo? undo_info? begin_trans? buext_info? kdo_undo_info? index_undo_info? ktb_redo_info? block_cleanout_record? column_info? block_written* bitmap_redo?
-              |  change_number media_recovery_marker con_id?  scn seq layer_opcode enc flg? standby_metadata_info? xid? datafile_resize_marker? block_written*
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsph_redo? ktsfm_redo? undo_info? ktuxv_info? begin_trans? buext_info? kdo_undo_info? index_undo_info? ktb_redo_info? hwms? block_cleanout_record? column_info? block_written* bitmap_redo?
+              |  change_number media_recovery_marker con_id?  scn seq layer_opcode enc flg? standby_metadata_info? reuse_redo_entry? xid? datafile_resize_marker? block_written*
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written* bitmap_redo?
               )
+    ;
+
+
+hwms
+    : BOTH THE HWMS
+           LOW HWM highwater_info  lfdba
+           HIGH HWM highwater_info  lfdba
+    |       LOW HWM highwater_info  lfdba?
+    |       HIGH HWM highwater_info  lfdba?
     ;
 
 bitmap_redo
@@ -157,6 +168,67 @@ bitmap_redo
           REDO bitmap_redo_op
     | BMB STATE CHANGE_RAW len offset state
     | KTSPBFREDO MINUS FORMAT PAGETABLE DATABLOCK ktspbredo
+    | KTSPSFREDO MINUS FORMAT LEVEL HEX BITMAP BLOCK parent_dba startdba number incn
+    | KTSPFFREDO MINUS FORMAT LEVEL HEX BITMAP BLOCK 
+             startdba_of_the_range number_of_blocks
+             nbits inst nmrk parent_dba offset             
+    ;
+
+nbits
+    : NBITS ':' nbits_value
+    ;
+
+nbits_value
+    : HEX
+    ;
+
+inst
+    : INST ':' inst_value
+    ;
+
+inst_value
+    : HEX
+    ;
+
+nmrk
+    : NMRK ':' nmrk_value
+    ;
+
+nmrk_value
+    : HEX
+    ;
+
+
+number_of_blocks
+    : NUMBER OF BLOCKS ':' number_of_blocks_value
+    ;
+
+number_of_blocks_value
+    : HEX
+    ;
+
+startdba_of_the_range
+    : START DBA OF THE RANGE ':' startdba_of_the_range_value
+    ;
+
+startdba_of_the_range_value
+    : HEX
+    ;
+
+number
+    : NUMBER ':' number_value
+    ;
+
+number_value
+    : HEX
+    ;
+
+incn
+    : INCN ':' incn_value
+    ;
+
+incn_value
+    : HEX
     ;
 
 ktspbredo
@@ -188,17 +260,27 @@ inc_pound_value
     ;
 
 parent_dba
-    : PARENT LPAREN L HEX RPAREN DBA ':' parent_dba_value
+    : PARENT (LPAREN L HEX RPAREN)? DBA ':' parent_dba_value
     ;
 
 parent_dba_value
     : HEX
     ;
 
+reuse_redo_entry
+    : REUSE REDO ENTRY object_reuse
+    ;
+
+object_reuse
+    : OBJECT REUSE ':' PDB EQUAL HEX COMMA TSN EQUAL HEX OBJD EQUAL HEX
+    ;
+
+
 bitmap_redo_op
     : FOR STATE CHANGE_RAW len offset newstate
     | TO SET REJECTION CODE len off rc state
     | TO MARK BLOCK FREE  redo_to_mark_block_free
+    | TO SET HWM OPCODE ':' HEX highwater_info
     ;
 
 redo_to_mark_block_free
@@ -298,8 +380,11 @@ index_undo_info
 	    )	
 	     EQUAL HEX COMMA ITL EQUAL HEX COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXLRE RPAREN ':' RESTORE LEAF ROW
+   | INDEX REDO LPAREN KDXLPU RPAREN ':' PURGE LEAF ROW LPAREN COUNT EQUAL HEX RPAREN
+   | INDEX REDO LPAREN KDXLUP RPAREN ':' UPDATE KEYDATA COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXULO RPAREN ':' CLEAR BLOCK OPCODE DURING COMMIT
    | INDEX REDO LPAREN KDXULO RPAREN ':' UNLOCK BLOCK DURING UNDO
+   | ktfbh_undo
    ;
 
 init_leaf_block_being_split
@@ -363,12 +448,56 @@ instance_value
    : HEX
    ;
 
+begin_clause
+   : begin COMMA length COMMA instance
+   ;
+
 use_bits
-   : USE BITS ':' begin COMMA length COMMA instance
+   : USE BITS ':' begin_clause 
+   ;
+
+ktfbn_redo
+   : KTFBN REDO MINUS FILE PROPERTY MAP BLOCK LPAREN FPM RPAREN
+           HEX ':' STAT UPDATE REDO
+           off len utime
+   ;
+
+utime
+   : UTIME ':' utime_value
+   ;
+
+utime_value
+   : HEX
    ;
 
 ktfbb_redo
     : KTFBBREDO MINUS FILE BITMAP BLOCK REDO ':' use_bits
+    ;
+
+space_header
+    : space_header_dba COMMA file
+    ;
+
+space_header_dba
+    : SPACE HEADER DBA ':' space_header_dba_value 
+    ;
+
+space_header_dba_value
+    : HEX
+    ;
+
+free_extent
+    : FREE EXTENT ':'
+    ;
+
+ktfbh_undo
+    : KTFBHUNDO MINUS FILE SPACE HEADER UNDO ':' 
+			space_header header_opcode save (NO pending_op
+                                                        |save_using
+                                                        )?
+                                                          free_extent?
+                                                          begin_clause?
+                                                         
     ;
 
 ktfbh_redo
@@ -393,6 +522,38 @@ ktsbifm_redo
 
 ktust_redo
     : KTUST REDO ':' slt sqn sta cfl
+    ;
+
+nblks
+   : NBLKS ':' nblks_value
+   ;
+
+nblks_value
+   : HEX
+   ;
+
+forcel3
+   : FORCEL3 ':' forcel3_value
+   ;
+
+forcel3_value
+   : HEX
+   ;
+
+startdba
+   : START DBA ':'? startdba_value
+   ;
+
+startdba_value
+   : HEX
+   ;
+
+ktsph_redo
+   : ktsphfredo
+   ;
+
+ktsphfredo 
+    : KTSPHFREDO MINUS FORMAT PAGETABLE SEGMENT HEADER startdba nblks forcel3 tsn objd
     ;
 
 
@@ -614,7 +775,7 @@ ktudbu_redo
     ;
 
 undo_info
-    : undo_type user_undo_done? last_buffer_split temp_object tablespace_undo user_only?
+    : undo_type user_undo_done? last_buffer_split star_date? temp_object tablespace_undo user_only?
     ;
 
 undo_type
@@ -743,10 +904,44 @@ hex_byte
 kdo_info
     : array_update
     | vect 
+    | kdo_flag_info (bkw
+                    |fwd
+                    )
+    ;
+
+fwd
+    : FWD ':' fwd_value
+    ;
+
+fwd_value
+    : HEX DOT (HEX
+              |A
+              |B
+              |C
+              |F
+              )
+    ;
+
+bkw
+    : BKW ':' bkw_value
+    ;
+
+bkw_value
+    : HEX DOT (HEX
+              |A
+              |B
+              |C
+              |F
+              )
+    ;
+
+
+kdo_flag_info
+    : ktb_redo_flag  lock tabn_slot
     ;
 
 vect
-    : VECT EQUAL HEX
+    : VECT EQUAL MINUS? HEX
     ;
 
 array_update
@@ -758,7 +953,7 @@ kdo_op_code_info
     ;
 
 kdo_op_code_info_more
-    : kdo_op_code kdo_itli_info kdo_info? tabn_info? ncol_info?
+    : kdo_op_code kdo_itli_info kdo_info? tabn_info? ncol_info? vector_content?
     | kdo_op_code kdo_itli_info  tabn_info fb_info  nrid  null_emum null_enum_list null_enum_info many_cols? 
 /*
     | kdo_op_code kdo_itli_info  tabn_info fb_info curc_info? null_emum null_enum_list null_enum_info many_cols?
@@ -767,6 +962,9 @@ kdo_op_code_info_more
     | kdo_op_code kdo_itli_info  tabn_info+
     ;
 
+vector_content
+    : VECTOR CONTENT ':' col_info*
+    ;
 curc_info
     : curc comc pk nk
     ;
@@ -1059,6 +1257,7 @@ rp_dependencies
     | QMI ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | LKR ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     | HEX ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
+    | SKL ROW DEPENDENCIES DISABLED xtype xa_flags bdba hdba
     ;
 
 
@@ -1086,6 +1285,7 @@ xtype_value
     : HEX
     | XAXTYPE KDO_KDOM2
     | XA
+    | XR
     ;
 
 xa_flags
@@ -1116,10 +1316,12 @@ ktb_redo_clause
    : ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 dump_kd_info? kdo_op_code_info?
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 itl_equal
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_leaf 
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 purge_leaf 
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 insert_into_slot
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 delete_leaf 
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 lock_block 
    | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 purge_branch 
+   | ktb_redo_op1 ktb_redo_compat_bit padding ktb_redo_op2 kdxlup_info 
    ;
 
 insert_into_slot
@@ -1154,8 +1356,24 @@ purge_slot_value
    : MINUS? HEX
    ;
 
+kdxdumpcompdo
+   : KDXDUMPCOMPDO LEN HEX HEX LPAREN HEX RPAREN ':' HEX+
+   ;
+
+kdxlup_info
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? keydata? kdxdumpcompdo star_date?
+   ;
+
+purge_leaf
+   : UNDO ':' HEX SINGLE SPLIT FLAG FSLASH CLEAR FSLASH '-' '-' FSLASH '-' '-' FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info? 
+   ;
+
+leaf_itl_info
+   : itl COMMA sno COMMA ROW SIZE HEX
+   ;
+
 insert_leaf
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? leaf_slots? insert_key  each_key_size_is? keydata?
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info number_of_keys? leaf_slots? insert_key  each_key_size_is? keydata?
    ;
 
 delete_leaf
@@ -1195,15 +1413,16 @@ each_key_size_value
    ;
 
 insert_key
-   : INSERT KEY ':' LPAREN HEX RPAREN ':' insert_key_value
+   : INSERT KEY ':' LPAREN HEX RPAREN ':' insert_key_value+
    ;
 
 insert_key_value
-   : HEX+
+   : HEX
+     | star_date
    ;
 
 keydata
-   : KEYDATA ':' LPAREN HEX RPAREN ':' keydata_value
+   : KEYDATA (FSLASH BITMAP)? ':' LPAREN HEX RPAREN ':' keydata_value
    ;
 
 keydata_value
@@ -1214,8 +1433,8 @@ dump_kd_info
    : dump_kdilk kdxlpu number_of_keys? key_sizes? kdx_key selflock? kdx_bitmap?
    | dump_kdilk kdxlre kdx_key kdx_bitmap?
    | dump_kdilk kdxlre number_of_keys key_sizes kdx_key selflock kdx_bitmap
-   | dump_kdilk kdxlde kdx_key
-   | dump_kdilk kdxlup kdx_key
+   | dump_kdilk kdxlde kdx_key keydata?
+   | dump_kdilk kdxlup kdx_key keydata?
    | dump_kdige 
 	(restore_block_before_image
 	 |restore_block_to_btree
@@ -1270,6 +1489,7 @@ kdxlup
 
 kdxlde
    : INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
+   | LPAREN KDXLDE RPAREN ':' MARK LEAF ROW DELETED
    ;
 
 
@@ -1360,6 +1580,10 @@ ktb_redo_op_Z
 
 ktb_redo_op_l
    : L itl xid uba ktb_redo_flg lkc scn
+   ;
+
+ktb_redo_flag
+   : FLAG ':' ktb_redo_flag_values
    ;
 
 ktb_redo_flg
@@ -1516,7 +1740,7 @@ kteop_redo
     ;
 
 sethwm
-    : SETHWM ':' 
+    : SET HWM ':' 
     ;
     
 highwater
@@ -1654,9 +1878,12 @@ extent_map_redo_add
      
 
 extent_map_redo_sethwm
-    : sethwm highwater ext_pound blk_pound ext_size blocks_in_seg_hdr_freelist blocks_below mapblk offset
+    : sethwm highwater_info
     ;
 
+highwater_info
+    :  highwater ext_pound blk_pound ext_size blocks_in_seg_hdr_freelist blocks_below mapblk offset
+    ;
 
 ktudh_redo
     : KTUDH REDO ':' slt sqn flg siz fbi uba pxid pdbuid? kteop_redo?
@@ -1982,8 +2209,29 @@ standby_metadata_info
     : standby_metadata_cache_invalidation kqr_info kgl_info
     ;
 
+ktuxv_info
+    : ktuxvoff ktuxvflg
+    ;
+
+ktuxvoff
+    : KTUXVOFF ':' ktuxvoff_value
+    ;
+
+ktuxvoff_value
+    : HEX
+    ;
+
+ktuxvflg
+    : KTUXVFLG ':' ktuxvflg_value
+    ;
+
+ktuxvflg_value
+    : HEX
+    ;
+    
+
 kgl_info
-    : KGL INFO ':' kgl_info_value+
+    : KGL INFO ':' kgl_info_value*
     ;
 
 kgl_info_value
@@ -1991,7 +2239,7 @@ kgl_info_value
     ;
 
 kqr_info
-    : KQR INFO ':' kqr_info_value
+    : KQR INFO ':' kqr_info_value*
     ;
 
 kqr_info_value 
@@ -2158,6 +2406,10 @@ memory_address
 memory_line
    : HEX HEX? HEX? HEX?
    ;
+
+ktb_redo_flag_values
+    : ((F|C|MINUS)(B|H|MINUS)|HEX) 
+    ;
 
 ktb_redo_flg_values
     : ((C|MINUS)(B|H|MINUS)|HEX) (U|MINUS) (L|MINUS)
