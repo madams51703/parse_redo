@@ -306,7 +306,7 @@ array <std::string,17> block_classes_real =
 ,"system undo block"
 };
 
-array<change_vector,400000> change_vectors;
+array<change_vector,40000000> change_vectors;
 long number_of_change_vectors=0;
 long change_vectors_at_redo_record=0;
 long change_vectors_at_last_xid=0;
@@ -601,18 +601,16 @@ void enterRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  { /* std::cout << "
 void exitRedo_file(RedoParser::Redo_fileContext * /*ctx*/)  {
 
 //std::cout << "Found "<<number_of_change_vectors << " change vectors\n";
-
+/*
    int i;   
 	for(i=0; i < (number_of_change_vectors) ; i++ )
 	{
 //For Debug         cout << "RECORD:" << i << "\n";	
 	 change_vectors[i].print_change_vector(block_classes_real,opcode_lookup);
 	}
-
+*/
   }
-void enterRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  {
-
- }
+void enterRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  { }
 void exitRedo_record_info(RedoParser::Redo_record_infoContext * ctx)  {
 int i=0; 
 

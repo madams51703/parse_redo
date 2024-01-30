@@ -24,6 +24,8 @@ redo_info
     | ktfbn_redo
     | ktudbr_redo
     | kteop_redo
+    | ktsbi_redo
+    | ktsl_redo
     ;
 
 redo_record
@@ -148,7 +150,7 @@ chg_prefix_exists
     ;
 
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? star_date? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsph_redo? ktsfm_redo? undo_info? ktuxv_info? begin_trans? buext_info? kdo_undo_info? index_undo_info? ktb_redo_info? hwms? block_cleanout_record? column_info? block_written* bitmap_redo?
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsph_redo? ktsfm_redo?  ktuxv_info? undo_prefix_info? undo_info? begin_trans? buext_info? ktsl_redo? kdo_undo_info? index_undo_info? ktb_redo_info? hwms? block_cleanout_record? column_info? block_written* bitmap_redo?
               |  change_number media_recovery_marker con_id?  scn seq layer_opcode enc flg? standby_metadata_info? reuse_redo_entry? xid? datafile_resize_marker? block_written*
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written* bitmap_redo?
               )
@@ -161,6 +163,45 @@ hwms
            HIGH HWM highwater_info  lfdba
     |       LOW HWM highwater_info  lfdba?
     |       HIGH HWM highwater_info  lfdba?
+    ;
+
+bitmap_undo
+    : UNDO FOR bitmap_undo_lev BITMAP BLOCK
+    ;
+bitmap_undo_lev
+    : LEV bitmap_undo_lev_value
+    ;
+
+bitmap_undo_lev_value
+    : HEX
+    ;
+
+bitmap_undo_op
+    : l_dba l_dba fcls scls offset
+    ;
+
+fcls
+    : FCLS ':' fcls_value
+    ;
+
+fcls_value
+    : HEX
+    ;
+
+scls
+    : SCLS ':' scls_value
+    ;
+
+scls_value
+    : HEX
+    ;
+
+l_dba
+    : L HEX ':' l_dba_value
+    ;
+
+l_dba_value
+    : HEX
     ;
 
 bitmap_redo
@@ -281,6 +322,17 @@ bitmap_redo_op
     | TO SET REJECTION CODE len off rc state
     | TO MARK BLOCK FREE  redo_to_mark_block_free
     | TO SET HWM OPCODE ':' HEX highwater_info
+    | TO CHANGE_RAW OPCODE bitmap_opcode
+    | TO DELETE RANGE length
+    | TO ADD RANGE bdba length
+    ;
+
+bitmap_opcode
+    : OPCODE ':' bitmap_opcode_value locking_transaction
+    ;
+
+bitmap_opcode_value
+    : HEX
     ;
 
 redo_to_mark_block_free
@@ -320,8 +372,21 @@ ncmt_value
     ;
 
 commit_slot_list
-    : COMMIT SLOT LIST locking_transaction
+    : COMMIT SLOT LIST commit_slot_info? locking_transaction
     ;
+
+commit_slot_info
+    : HEX DOT slot
+    ;
+
+slot
+    : SLOT ':' slot_value
+    ;
+
+slot_value
+    : HEX
+    ;
+
 
 locking_transaction
     : LOCKING TRANSACTION ':' locking_transaction_value
@@ -590,6 +655,74 @@ startdba_value
    : HEX
    ;
 
+ktsl_undo
+   : KTSL MINUS LOB PERSISTENT UNDO BLOCK LPAREN PUB RPAREN UNDO RECORD ':'
+       bdba class
+   ;
+
+ktsl_redo
+   : KTSL MINUS PUA REDO RECORD ':' 
+       pua_options+ 
+   ;
+
+pua_options
+   : HEX ':' SPLITTING CHUNK IN pua_chunk ':' split_length
+   | HEX ':' ON DISK ROLLBACK OF HEX CHUNKS on_disk_rollback mark_chunk_free
+   ; 
+
+on_disk_rollback
+   : ON DISK ROLLBACK ':'
+   ;
+
+mark_chunk_free
+   : MARK CHUNK FREE ':' mark_chunk_free_value
+   ;
+
+mark_chunk_free_value
+   : HEX
+   ;
+
+class
+   : CLASS ':' class_value
+   ;
+
+class_value
+   : HEX
+   ;
+
+pua_chunk
+   : PUA CHUNK ':' pua_chunk_value
+   ;
+
+pua_chunk_value
+   : HEX
+   ;
+
+split_length
+   : SPLIT LENGTH split_length_value
+   ;
+
+split_length_value
+   : HEX
+   ;
+
+
+ktsbi_redo
+   : KTSBI REDO MINUS REDO OPERATION ON BITMAP INDEX BLOCK resettok bit_no
+   ;
+
+resettok
+   : RESETTOK ':'
+   ;
+
+bit_no
+   : BIT NO ':' bit_no_value
+   ;
+
+bit_no_value
+   : HEX
+   ;
+
 ktsph_redo
    : ktsphfredo
    ;
@@ -746,7 +879,7 @@ ktecush_redo
     ;    
 
 ktsfrgrp_redo
-    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':'  ktsfrgrp_opcode ktsfrgrp_slot ktsfrgrp_flag ccnt head tail
+    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':'  ktsfrgrp_opcode+ ktsfrgrp_slot ktsfrgrp_flag ccnt head tail
     ;
 
 head
@@ -777,12 +910,22 @@ ccnt_value
    : HEX DOT HEX DOT HEX
    ;
 
+nbk
+   : NBK ':' nbk_value
+   ;
+
+nbk_value
+   : HEX
+   ;
+
 ktsfrgrp_opcode
     : OPCODE ':' ktsfrgrp_opcode_value
     ;
 
 ktsfrgrp_opcode_value
     : LUPD_UNLBLK LPAREN UNLINK BLOCK RPAREN
+    | LUPD_LLIST LPAREN LINK A LIST RPAREN
+    | HWMMV LPAREN MOVE HWM RPAREN nbk
     ;
 
 ktsfrgrp_slot
@@ -816,8 +959,41 @@ ktudbu_redo
     : KTUDBU REDO ':' slt rci opc objn objd tsn
     ;
 
+kteopu_undo
+    : KTEOPU UNDO MINUS UNDO OPERATION ON EXTENT MAP ':' Q segdba class mapdba offset
+                                 RBR EXTENT MINUS dba nbk
+    ;
+
+segdba
+    : SEG DBA ':' segdba_value
+    ;
+
+mapdba
+    : MAP DBA ':' mapdba_value
+    ;
+
+mapdba_value
+    : HEX
+    ;
+
+segdba_value
+    : HEX
+    ;
+
+kdli_common
+    : KDLI COMMON '[' HEX ']' kdli_op kdli_type kdli_flg0 kdli_flg1 kdli_psiz kdli_poff kdli_dba
+    ;
+
+
+
 undo_info
-    : undo_type user_undo_done? last_buffer_split star_date? temp_object tablespace_undo user_only?
+    : kteopu_undo
+    | ktsl_undo
+    ; 
+
+
+undo_prefix_info
+    : undo_type user_undo_done? last_buffer_split temp_object tablespace_undo user_only?
     ;
 
 undo_type
@@ -926,8 +1102,8 @@ flg2
     ;
 
 col_info
-    : star_date? COL HEX ':' '[' col_element_count_value ']' col_values
-    | star_date? COL HEX ':' NULL_COLUMN_VALUE
+    :  COL HEX ':' '[' col_element_count_value ']' col_values
+    |  COL HEX ':' NULL_COLUMN_VALUE
     ;
 
 col_element_count_value
@@ -1085,17 +1261,13 @@ ispac_value
 
 
 tabn_info
-   : tabn star_date? tabn_slot flag lock ckix
-   | tabn star_date?  tabn_slot size_delt 
+   : tabn tabn_slot flag lock ckix
+   | tabn tabn_slot size_delt 
    | tabn lock nrow tabn_qmd_slot_info 
    | tabn lock nrow tabn_qmi_slot_info+ 
    | tabn tabn_slot
    ;
 
-star_date
-   : STARDATE LPAREN CDBROOT LPAREN HEX RPAREN RPAREN
-   | STARDATE
-   ;
 
 size_delt
    : SIZE '/' DELT ':' size_delt_value
@@ -1198,7 +1370,7 @@ tabn_qmi_slot_info
    ;
 
 tabn_qmi_slot_info_do
-   : tabn_qm_slot tl_info star_date? many_cols 
+   : tabn_qm_slot tl_info  many_cols 
    ;
 
 many_cols
@@ -1206,7 +1378,7 @@ many_cols
   ;
 
 tabn_qm_slot
-   : star_date? SLOT '[' tabn_qm_slot_idx ']' ':' tabn_qm_slot_value
+   : SLOT '[' tabn_qm_slot_idx ']' ':' tabn_qm_slot_value
    ;
 
 tabn_qm_slot_idx
@@ -1375,8 +1547,8 @@ ktb_redo_clause
    ;
 
 ktb_redo_clause_options
-    : star_date? dump_kd_info? kdo_op_code_info?
-    | single_array_redo_info star_date? leaf_itl_info? insert_key?
+    : dump_kd_info? kdo_op_code_info?
+    | single_array_redo_info leaf_itl_info? insert_key?
     | itl_equal
     | insert_leaf
     | purge_leaf
@@ -1425,7 +1597,7 @@ kdxdumpcompdo
    ;
 
 kdxlup_info
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info number_of_keys? keydata? kdxdumpcompdo star_date?
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info number_of_keys? keydata? kdxdumpcompdo 
    ;
 
 purge_leaf
@@ -1433,7 +1605,7 @@ purge_leaf
    ;
 
 leaf_itl_info
-   : itl COMMA sno COMMA ROW SIZE HEX star_date?
+   : itl COMMA sno COMMA ROW SIZE HEX 
    ;
 
 single_array_redo_info
@@ -1487,7 +1659,6 @@ insert_key
 
 insert_key_value
    : HEX
-     | star_date
    ;
 
 keydata
@@ -1571,7 +1742,7 @@ kdx_key
    ;
 
 kdx_key_value
-   : (HEX|star_date)+
+   : HEX+
    ;
 
 dump_kdige
@@ -1620,7 +1791,7 @@ ktb_redo_op1
    ;
 
 ktb_redo_compat_bit
-   : COMPAT BIT ':' compat_bit_value '(' POST MINUS_ELEVEN ')'
+   : COMPAT BIT ':' compat_bit_value '(' POST MINUS HEX ')'
    ;
 
 compat_bit_value
@@ -1670,7 +1841,6 @@ itl_list
 itl_list_entries
    : itl_list_itl itl_list_xid itl_list_uba itl_list_flag
         itl_list_lck itl_list_scn_or_fsc_indicator itl_list_scn_or_fsc
-   | star_date
    ;
 
 itl_list_uba
@@ -1872,6 +2042,7 @@ mapblk_value
 extent_map_redo
     : REDO OPERATION ON EXTENT MAP (extent_map_redo_sethwm
                                    |extent_map_redo_add
+                                   |extent_map_redo_delete
 				   )
     ;
 
@@ -1946,6 +2117,14 @@ extent_map_redo_add
     : ADD ':' dba len at_offset addret setstat updxnt
     ;
      
+extent_map_redo_delete
+    : DELETE ':' ENTRY ':' HEX shift_back dba len 
+               SETSTAT ':' exts blks lastmap mapcnt
+    ;
+
+shift_back
+    : SHIFT BACK
+    ;
 
 extent_map_redo_sethwm
     : sethwm highwater_info
@@ -2204,7 +2383,7 @@ column_value
     ;
 
 block_cleanout_record
-    : BLOCK CLEANOUT RECORD COMMA scn ver opt bigscn? compact? spare? COMMA ENTRIES FOLLOW DOT DOT DOT   itli_entries+ 
+    : BLOCK CLEANOUT RECORD COMMA scn ver opt bigscn? compact? spare? COMMA ENTRIES FOLLOW DOT DOT DOT   (itli_entries+)?
     ;
 
 opt
@@ -2467,7 +2646,6 @@ dump_memory
 
 memory_info
    : memory_address memory_line memory_display
-   | STARDATE2
    ;
 
 memory_display
