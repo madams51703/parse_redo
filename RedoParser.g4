@@ -984,8 +984,175 @@ kdli_common
     : KDLI COMMON '[' HEX ']' kdli_op kdli_type kdli_flg0 kdli_flg1 kdli_psiz kdli_poff kdli_dba
     ;
 
+kdli_specific
+    : kdli_fpload kdli_bsz kdli_scn kdli_xid kdli_objd
+      kdli_load_data kdli_bdba
+      kdli_kdlih kdli_flg0
+
+kdli_op
+    : OP kdli_op_value
+    ;
+
+kdli_op_value
+    : HEX
+    ;
+
+kdli_type
+    : TYPE type_value
+    ;
+
+kdli_type_value
+    : HEX
+    ;
+
+kdli_flg0
+    : FLG0 kdli_flg0_value '['VER  EQUAL HEX TYP EQUAL HEX LOCK EQUAL (Y|N) ']'
+    ;
+
+kdli_flg0_value
+    : HEX
+    ;
 
 
+kdli_flg1
+    : FLG1 kdli_flg1_value
+    ;
+
+kdli_flg1_value
+    : HEX
+    ;
+
+kdli_poff
+    : POFF poff_value
+    ;
+
+
+kdli_dba
+    : DBA dba_value
+    ;
+
+ 
+kdli_psiz
+    : PSIZ kdli_psiz_value
+    ;
+
+kdli_psiz_value
+    : HEX
+    ;
+
+
+kdli_fpload
+    : KDLI FPLOAD '[' HEX DOT HEX ']' 
+    ;
+
+kdli_bsz
+    : BSZ kdli_bsz_value
+    ;
+
+kdli_bsz_value
+    : HEX
+    ;
+
+kdli_scn
+    : SCN scn_value
+    ;
+
+kdli_scn_value
+    : HEX
+    ;
+
+
+kdli_xid
+    : XID xid_value
+    ;
+
+kdli_objd
+    : OBJD objd_value
+    ;
+
+kdli_load_data
+    : KDLI LOAD DATA '[' HEX DOT HEX ']'
+    ;
+
+kdli_bdba
+    : BDBA bdba_value
+    ;
+
+kdlich
+    : KDLICH '[' HEX HEX ']'
+    ;
+
+kdli_lid
+    : LID kdli_lid_value
+    ;
+
+kdili_lid_value
+    : HEX
+    ;
+
+kdli_spare
+    : SPARE kdli_spare_value
+    ;
+
+kdli_spare_value
+    : HEX
+    ;
+
+kdlih
+    : KDLIH '[' HEX HEX ']'
+    ;
+
+kdlih_flg2
+    : FLG2 kdlih_flg2_value
+    ;
+
+kdlih_flg2_value
+    : HEX
+    ;
+
+kdlih_flg3_value
+    : HEX
+    ;
+
+kdlih_pskip
+    : PSKIP kdlih_pskip_value
+    ;
+
+kdlih_pskip_value
+    : HEX
+    ;
+
+kdlih_sskip
+    : SSKIP kdlih_sskip_value
+    ;
+
+kdlih_sskip_value
+    : HEX
+    ;
+
+kdlih_hash
+    : HASH kdli_hash_value
+    ;
+
+kdli_hash_value
+    : HEX
+    ;
+
+kdli_hwm
+    : HWM hwm_value
+    ;
+
+kdli_spr
+    :spr kdli_spr_value
+    ;
+
+kdli_spr_value
+    : HEX
+    ;
+
+kdi_data_load
+    : KDLI DATA LOAD '[' HEX DOT HEX ']' HEX+
+    ;
 undo_info
     : kteopu_undo
     | ktsl_undo
