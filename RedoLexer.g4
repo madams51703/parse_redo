@@ -2,6 +2,32 @@
 lexer grammar RedoLexer;
 
 options { caseInsensitive = true; }
+
+ADDAXT:                'ADDAXT';
+FDBA:                  'FDBA';
+
+
+SHORT:                 'SHORT';
+ROWID:                 'ROWID';
+CMAP:                  'CMAP';
+PFILL:                 'PFILL';
+
+BIMG:                  'BIMG';
+FPLOAD:                'FPLOAD';
+BSZ:                   'BSZ';
+LOAD:                  'LOAD';
+DATA:                  'DATA';
+KDLICH:                'KDLICH';
+LID:                   'LID';
+PSKIP:                 'PSKIP';
+SSKIP:                 'SSKIP';
+HASH:                  'HASH';
+SPR:                   'SPR';
+KDLIDH:                'KDLIDH';
+FLG3:                  'FLG3';
+
+
+
 DATA_BLOCK_BI:         'DATA BLOCK B.I.' -> pushMode(MEMORY_DUMP);
 DUMPING_ROW_INDEX:     'DUMPING ROW INDEX' -> pushMode(MEMORY_DUMP);
 DUMPING_ROWS:          'DUMPING ROWS' -> pushMode(MEMORY_DUMP);
@@ -454,7 +480,7 @@ MINUS:                 '-';
 DOT:                   '.';
 COMMA:                 ',';
 HEXBYTE:              ' [0-9A-F][0-9A-F';
-HEX:                   '0X'?[0-9A-F]+;
+HEX:                   [0]?[X]?[0-9A-F]+;
 LPAREN:                '(';
 RPAREN:                ')';
 LSQUARE:               '[';

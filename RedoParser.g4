@@ -150,7 +150,7 @@ chg_prefix_exists
     ;
 
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsph_redo? ktsfm_redo?  ktuxv_info? undo_prefix_info? undo_info? begin_trans? buext_info? ktsl_redo? kdo_undo_info? index_undo_info? ktb_redo_info? hwms? block_cleanout_record? column_info? block_written* bitmap_redo?
+    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? undo_info? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsph_redo? ktsfm_redo?  ktuxv_info? undo_prefix_info? undo_info? redo_info? begin_trans? buext_info? ktsl_redo? kdo_undo_info? index_undo_info? ktb_redo_info? hwms? block_cleanout_record? column_info? block_written* bitmap_undo? bitmap_redo? kdli_info?
               |  change_number media_recovery_marker con_id?  scn seq layer_opcode enc flg? standby_metadata_info? reuse_redo_entry? xid? datafile_resize_marker? block_written*
               |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written* bitmap_redo?
               )
@@ -166,7 +166,7 @@ hwms
     ;
 
 bitmap_undo
-    : UNDO FOR bitmap_undo_lev BITMAP BLOCK
+    : UNDO FOR bitmap_undo_lev BITMAP BLOCK bitmap_undo_op
     ;
 bitmap_undo_lev
     : LEV bitmap_undo_lev_value
@@ -197,7 +197,7 @@ scls_value
     ;
 
 l_dba
-    : L HEX ':' l_dba_value
+    : L HEX DBA ':' l_dba_value
     ;
 
 l_dba_value
@@ -960,7 +960,7 @@ ktudbu_redo
     ;
 
 kteopu_undo
-    : KTEOPU UNDO MINUS UNDO OPERATION ON EXTENT MAP ':' Q segdba class mapdba offset
+    : KTEOPU UNDO MINUS UNDO OPERATION ON EXTENT MAP ':'? Q? segdba class mapdba offset
                                  RBR EXTENT MINUS dba nbk
     ;
 
@@ -980,6 +980,9 @@ segdba_value
     : HEX
     ;
 
+kdli_info
+    : kdli_common kdli_specific
+    ;
 kdli_common
     : KDLI COMMON '[' HEX ']' kdli_op kdli_type kdli_flg0 kdli_flg1 kdli_psiz kdli_poff kdli_dba
     ;
@@ -987,10 +990,18 @@ kdli_common
 kdli_specific
     : kdli_fpload kdli_bsz kdli_scn kdli_xid kdli_objd
       kdli_load_data kdli_bdba
-      kdli_kdlih kdli_flg0
+      kdli_kdlich kdli_kdlich_flg0 kdli_kdlich_flg1 kdli_kdlich_scn kdli_kdlich_lid 
+            kdli_kdlich_spare
+      kdli_kdlidh kdli_kdlidh_flg2 kdli_kdlidh_flg3 kdli_kdlidh_pskip kdli_kdlidh_sskip
+            kdli_kdlidh_hash kdli_kdlidh_hwm kdli_kdlidh_spr
+      KDLI DATA LOAD '[' HEX DOT HEX ']' kdli_data_load+
+    ;
 
+kdli_data_load
+    : HEX
+    ;
 kdli_op
-    : OP kdli_op_value
+    : OP kdli_op_value '[' BIMG ']'
     ;
 
 kdli_op_value
@@ -998,7 +1009,7 @@ kdli_op_value
     ;
 
 kdli_type
-    : TYPE type_value
+    : TYPE type_value '[' DATA ']'
     ;
 
 kdli_type_value
@@ -1006,9 +1017,12 @@ kdli_type_value
     ;
 
 kdli_flg0
-    : FLG0 kdli_flg0_value '['VER  EQUAL HEX TYP EQUAL HEX LOCK EQUAL (Y|N) ']'
+    : FLG0 kdli_flg0_value kdli_flg0_option?
     ;
 
+kdli_flg0_option
+    : '['VER  EQUAL HEX TYP EQUAL HEX LOCK EQUAL (Y|N) ']'
+    ;
 kdli_flg0_value
     : HEX
     ;
@@ -1075,78 +1089,167 @@ kdli_load_data
     ;
 
 kdli_bdba
-    : BDBA bdba_value
+    : BDBA '[' bdba_value ']'
     ;
 
-kdlich
+kdli_kdlich
     : KDLICH '[' HEX HEX ']'
     ;
 
-kdli_lid
-    : LID kdli_lid_value
+kdli_kdlich_flg1
+    : FLG1 kdli_kdlich_flg1_value
     ;
 
-kdili_lid_value
+kdli_kdlich_flg1_value
     : HEX
     ;
 
-kdli_spare
-    : SPARE kdli_spare_value
+kdli_kdlich_scn
+    : SCN scn_value '[' HEX DOT HEX DOT HEX ']'
     ;
 
-kdli_spare_value
+kdli_kdlich_flg0
+    : FLG0 HEX '[' ver_equal typ_equal lock_equal ']'
+    ;
+
+ver_equal 
+    : VER EQUAL ver_equal_value
+    ;
+
+ver_equal_value
     : HEX
     ;
 
-kdlih
-    : KDLIH '[' HEX HEX ']'
+typ_equal
+    : TYP EQUAL typ_equal_value
     ;
 
-kdlih_flg2
-    : FLG2 kdlih_flg2_value
+typ_equal_value
+    : DATA
     ;
 
-kdlih_flg2_value
+lock_equal
+    : LOCK EQUAL lock_equal_value
+    ;
+
+lock_equal_value
+    : Y
+    | N
+    ;
+
+kdli_kdlich_lid
+    : LID kdli_kdlich_lid_value
+    ;
+
+kdli_kdlich_lid_value
     : HEX
     ;
 
-kdlih_flg3_value
+kdli_kdlich_spare
+    : SPARE kdli_kdlich_spare_value
+    ;
+
+kdli_kdlich_spare_value
     : HEX
     ;
 
-kdlih_pskip
-    : PSKIP kdlih_pskip_value
+kdli_kdlidh
+    : KDLIDH '[' HEX HEX ']'
     ;
 
-kdlih_pskip_value
+kdli_kdlidh_flg2
+    : FLG2 kdli_kdlidh_flg2_value kdli_kdlidh_flg2_options
+    ;
+
+kdli_kdlidh_flg2_options
+    : '[' ver_equal kdli_kdlidh_lid_equal kdli_kdlidh_hash_equal kdli_kdlidh_cmap kdli_kdlidh_pfill ']'
+    ;
+
+kdli_kdlidh_flg2_value
     : HEX
     ;
 
-kdlih_sskip
-    : SSKIP kdlih_sskip_value
+kdli_kdlidh_lid_equal
+    : LID EQUAL kdli_kdlidh_lid_value
     ;
 
-kdlih_sskip_value
+kdli_kdlidh_lid_value
+    : SHORT MINUS ROWID
+    ;
+
+
+kdli_kdlidh_flg3
+    : FLG3 kdli_kdlidh_flg3_value
+    ;
+
+kdli_kdlidh_flg3_value
     : HEX
     ;
 
-kdlih_hash
-    : HASH kdli_hash_value
+kdli_kdlidh_pskip
+    : PSKIP kdli_kdlidh_pskip_value
     ;
 
-kdli_hash_value
+kdli_kdlidh_pskip_value
     : HEX
     ;
 
-kdli_hwm
-    : HWM hwm_value
+kdli_kdlidh_sskip
+    : SSKIP kdli_kdlidh_sskip_value
     ;
 
-kdli_spr
-    :spr kdli_spr_value
+kdli_kdlidh_sskip_value
+    : HEX
     ;
 
-kdli_spr_value
+kdli_kdlidh_hash_equal
+    : HASH EQUAL kdli_kdlidh_hash_equal_value
+    ;
+
+kdli_kdlidh_hash_equal_value
+    : Y
+    | N
+    ;
+
+kdli_kdlidh_hash
+    : HASH kdli_kdlidh_hash_value
+    ;
+
+kdli_kdlidh_hash_value
+    : HEX
+    ;
+
+kdli_kdlidh_cmap
+    : CMAP EQUAL kdli_kdlidh_cmap_value
+    ;
+
+kdli_kdlidh_cmap_value
+    : Y
+    | N
+    ;
+
+kdli_kdlidh_pfill
+    : PFILL EQUAL kdli_kdlidh_pfill_value
+    ;
+
+kdli_kdlidh_pfill_value
+    : Y
+    | N
+    ;
+
+kdli_kdlidh_hwm
+    : HWM kdli_kdlidh_hwm_value
+    ;
+
+kdli_kdlidh_hwm_value
+    : HEX
+    ;
+
+kdli_kdlidh_spr
+    :SPR kdli_kdlidh_spr_value
+    ;
+
+kdli_kdlidh_spr_value
     : HEX
     ;
 
@@ -2279,9 +2382,12 @@ addret
     : ADDRET ':' offset ctime
     ;
 
+addaxt
+    : ADDAXT ':' offset fdba bdba
+    ;
 
 extent_map_redo_add
-    : ADD ':' dba len at_offset addret setstat updxnt
+    : ADD ':' dba len at_offset (addret|addaxt) setstat updxnt
     ;
      
 extent_map_redo_delete
@@ -2290,7 +2396,7 @@ extent_map_redo_delete
     ;
 
 shift_back
-    : SHIFT BACK
+    : SHIFT BACK ':'
     ;
 
 extent_map_redo_sethwm
@@ -2590,6 +2696,14 @@ lfdba
     ;
 
 lfdba_value
+    : HEX
+    ;
+
+fdba
+    : FDBA ':' fdba_value
+    ;
+
+fdba_value
     : HEX
     ;
 
