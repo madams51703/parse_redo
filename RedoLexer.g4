@@ -2,6 +2,78 @@
 lexer grammar RedoLexer;
 
 options { caseInsensitive = true; }
+KDXDLR:                'KDXDLR';
+KC:                    'KC';
+KMINUS:                'K-';
+CREATE:                'CREATE';
+KD_OFF:                'KD_OFF' -> pushMode(MEMORY_DUMP);
+ROOT:                  'ROOT';
+
+
+END_OF_LEAF_BLOCK_LOGICAL_DUMP : 'END OF LEAF BLOCK LOGICAL DUMP' ;
+END_OF_LEAF_BLOCK_DUMP: 'END OF LEAF BLOCK DUMP'  -> pushMode(MEMORY_DUMP);
+
+END:                   'END';
+LOGICAL:               'LOGICAL';
+ADDRESS:               'ADDRESS';
+KDXCOLOK:              'KDXCOLOK';
+KDXCOOPC:              'KDXCOOPC';
+CONVERTED:             'CONVERTED';
+EQUALS:                'EQUALS';
+IOT:                   'IOT';
+KDXCONCO:              'KDXCONCO';
+KDXCOSDC:              'KDXCOSDC';
+KDXCONRO:              'KDXCONRO';
+KDXCOFBO:              'KDXCOFBO';
+KDXCOFEO:              'KDXCOFEO';
+KDXCOAVS:              'KDXCOAVS';
+KDXLESPL:              'KDXLESPL';
+KDXLENDE:              'KDXLENDE';
+KDXLEDSZ:              'KDXLEDSZ';
+KDXLEBKSZ:             'KDXLEBKSZ';
+KDXCOLEV:              'KDXCOLEV';
+
+
+COMMITTED:             'COMMITTED';
+HOLES:                 'HOLES';
+ADVANCED:              'ADVANCED';
+COMPRESSION:           'COMPRESSION';
+
+
+LASTS:                 'LASTS';
+LF:                    'LF';
+LS:                    'LS';
+LT:                    'LT';
+FT:                    'FT';
+MCLS:                  'MCLS';
+
+
+FROM:                  'FROM';
+CSC:                   'CSC';
+DIRECT:                'DIRECT';
+LOADER:                'LOADER';
+ID:                    'ID';
+DATA_BLOCK_DUMP:       'DATA_BLOCK_DUMP';
+FBSO:                  'FBSO';
+BLOCK_ROW_DUMP:        'BLOCK_ROW_DUMP';
+TAB:                   'TAB';
+END_OF_BLOCK_DUMP:     'END_OF_BLOCK_DUMP'  -> pushMode(MEMORY_DUMP);
+OFFS:                  'OFFS';
+PTI:                   'PTI';
+PRI:                   'PRI';
+NTAB:                  'NTAB';
+TOSP:                  'TOSP';
+AVSP:                  'AVSP';
+FSEO:                  'FSEO';
+FSBO:                  'FSBO';
+FRRE:                  'FRRE';
+TSIZ:                  'TSIZ';
+HSIZ:                  'HSIZ';
+PBL:                   'PBL';
+EXFLG:                 'EXFLG';
+INC:                   'INC';
+BRN:                   'BRN';
+
 
 ADDAXT:                'ADDAXT';
 FDBA:                  'FDBA';
@@ -34,13 +106,15 @@ DUMPING_ROWS:          'DUMPING ROWS' -> pushMode(MEMORY_DUMP);
 A:		       'A';
 B:                     'B';
 C:                     'C';
+D:                     'D';
+E:                     'E';
 F:                     'F';
 H:                     'H';
 I:                     'I';
-K:                     'K';
 L:                     'L';
 Q:                     'Q';
 R:                     'R';
+S:                     'S';
 U:                     'U';
 Z:                     'Z';
 ADD:                   'ADD';
@@ -168,6 +242,7 @@ HEAD:                  'HEAD';
 HEADER:                'HEADER';
 HIGHWATER:             'HIGHWATER';
 HIGH:                  'HIGH';
+HINT:                  'HINT';
 HWMMV:                 'HWMMV';
 HWMS:                  'HWMS';
 HWM:                   'HWM';
@@ -207,6 +282,7 @@ KDXBNE:                'KDXBNE';
 KDXBPU:                'KDXBPU';
 KDXDUMPCOMPDO:         'KDXDUMPCOMPDO';
 KDXIMA:                'KDXIMA';
+KDXLCL:                'KDXLCL';
 KDXLDE:                'KDXLDE';
 KDXLEM:                'KDXLEM';
 KDXLENXT:              'KDXLENXT';
@@ -474,7 +550,10 @@ ZEROED:                'ZEROED';
 Y:                     'Y';
 N:                     'N';
 STARDATE:              '*** '[2][0-1][0-9][0-9]'-'[0-9][0-9]'-'[0-9][0-9]'T'[0-2][0-9]':'[0-5][0-9]':'[0-5][0-9]'.'[0-9]+'-'[0-2][0-9]':'[0][0] -> skip;
+AT_SIGN:               '@';
+QUESTION:              '?';
 COLON:                 ':';
+SEMICOLON:             ';';
 POUND:                 '#';
 MINUS:                 '-';
 DOT:                   '.';
@@ -491,11 +570,12 @@ SPACES: [ \t\r\n]+ -> skip;
 
 
 mode MEMORY_DUMP;
-REPEAT_X_TIMES:    'REPEAT '[0-0]+ ' TIMES' -> skip; 
+REPEAT_X_TIMES:    'REPEAT '[0-9]+ ' TIMES' -> skip; 
 DUMPING_ROWS2:     'DUMPING ROWS' -> type(DUMPING_ROWS)  ;
 DUMP2:             'DUMP' -> type(DUMP);
-FROM:              'FROM';
+FROM2:              'FROM';
 MEMORY:            'MEMORY';
+MINUS2:            '-' -> type(MINUS);
 OF2:               'OF' -> type(OF);
 TO2:               'TO' -> type(TO);
 HEX2:              '0X'?[0-9A-F]+ -> type(HEX);
@@ -504,6 +584,5 @@ AUTO2:              'AUTO' -> type(AUTO), popMode;
 REDO2:              'REDO' -> type(REDO), popMode;
 CHANGE2:            'CHANGE #' -> type(CHANGE), popMode;
 STARDATE2:              '*** '[2][0-1][0-9][0-9]'-'[0-9][0-9]'-'[0-9][0-9]'T'[0-2][0-9]':'[0-5][0-9]':'[0-5][0-9]'.'[0-9]+'-'[0-2][0-9]':'[0][0] -> skip;
-
-
+LPAREN2:            '(' -> type (LPAREN), popMode;
 SPACES2: [ \t\r\n]+ -> skip;

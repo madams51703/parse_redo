@@ -26,6 +26,8 @@ redo_info
     | kteop_redo
     | ktsbi_redo
     | ktsl_redo
+    | redo_to_change_opcode
+    | lasts_in_header
     ;
 
 redo_record
@@ -134,7 +136,7 @@ date_value
     ;
 
 lwn_info
-    : '(' LWN rba len nst scn ')'
+    : LPAREN LWN rba len nst scn ')'
     ;
 
 nst
@@ -150,9 +152,33 @@ chg_prefix_exists
     ;
 
 change
-    : lfdba? chg_prefix_exists?  CHANGE  (  change_number con_id? chg_type chg_class chg_afn dba chg_obj scn seq layer_opcode enc rbl flg? undo_info? redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? ktsfrbfmt_redo? ktsph_redo? ktsfm_redo?  ktuxv_info? undo_prefix_info? undo_info? redo_info? begin_trans? buext_info? ktsl_redo? kdo_undo_info? index_undo_info? ktb_redo_info? hwms? block_cleanout_record? column_info? block_written* bitmap_undo? bitmap_redo? kdli_info?
-              |  change_number media_recovery_marker con_id?  scn seq layer_opcode enc flg? standby_metadata_info? reuse_redo_entry? xid? datafile_resize_marker? block_written*
-              |  change_number con_id? invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid? ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo? ktsfm_redo? block_cleanout_record? column_info? block_written* bitmap_redo?
+    : lfdba? chg_prefix_exists?  
+       CHANGE  (  change_number con_id? chg_type chg_class 
+                   chg_afn dba chg_obj scn seq layer_opcode enc rbl flg?
+                     undo_info? redo_info?  xid?
+                      ktubl_redo? ktubu_redo? ktsfrgrp_redo? ktsfrblnk_redo? ktust_redo? 
+                      ktsfrbfmt_redo? ktsph_redo? ktsfm_redo?  ktuxv_info? 
+                       undo_prefix_info? undo_info?
+                       ktuxv_info?
+                       redo_info? 
+                       begin_trans? buext_info?
+                       ktsl_redo? 
+                       kdo_undo_info? index_undo_info? 
+                       ktb_redo_info?
+                       hwms? block_cleanout_record? column_info?
+                       block_written* bitmap_undo? bitmap_redo?
+                       kdli_info?
+                       direct_block_loader_redo? 
+              |  change_number media_recovery_marker con_id?  
+                  scn seq layer_opcode enc flg?
+                  standby_metadata_info? reuse_redo_entry? xid? 
+                  datafile_resize_marker? block_written*
+              |  change_number con_id? 
+                  invld chg_afn dba blks chg_obj scn seq layer_opcode enc redo_info? xid?
+                   ktubl_redo? ktubu_redo? ktsfrgrp_redo?  ktsfrblnk_redo? ktsfrbfmt_redo?
+                   ktsfm_redo?
+                     block_cleanout_record? column_info? 
+                     block_written* bitmap_redo?
               )
     ;
 
@@ -163,6 +189,82 @@ hwms
            HIGH HWM highwater_info  lfdba
     |       LOW HWM highwater_info  lfdba?
     |       HIGH HWM highwater_info  lfdba?
+    ;
+
+segment_header_undo
+    : SEGMENT HEADER UNDO 
+       seghdr_dba mapblock_dba mapredo_offset scls mcls
+        ( lasts_in_header
+        | hwms
+        )
+    ;
+
+lasts_in_header
+    : LASTS IN HEADER lf ls lt ft
+    ;
+
+lf
+    : LF ':' lf_value
+    ;
+
+lf_value
+    : HEX
+    ;
+
+ls
+    : LS ':' ls_value
+    ;
+
+ls_value
+    : HEX
+    ;
+
+lt
+    : LT ':' lt_value
+    ;
+
+lt_value
+    : HEX
+    ;
+
+ft
+    : FT ':' ft_value
+    ;
+
+ft_value
+    : HEX
+    ;
+ 
+mcls
+    : MCLS ':' mcls_value
+    ;
+
+mcls_value
+    : HEX
+    ;
+
+mapredo_offset
+    : MAP REDO OFFSET ':' mapredo_offset_value
+    ;
+
+mapredo_offset_value
+    : HEX
+    ;
+
+mapblock_dba
+    : MAP BLOCK DBA ':' mapblock_dba_value
+    ;
+
+mapblock_dba_value
+    : HEX
+    ;
+
+hint_dba
+    : HINT DBA ':' hint_dba_value
+    ;
+
+hint_dba_value
+    : HEX
     ;
 
 bitmap_undo
@@ -178,6 +280,7 @@ bitmap_undo_lev_value
 
 bitmap_undo_op
     : l_dba l_dba fcls scls offset
+    | l_dba scls DELETE L HEX S FROM L HEX fdba len offset
     ;
 
 fcls
@@ -206,14 +309,21 @@ l_dba_value
 
 bitmap_redo
     : REDO ON LEVEL bitmap_level_value BITMAP BLOCK
-          REDO bitmap_redo_op
+          bitmap_redo_options?
     | BMB STATE CHANGE_RAW len offset state
     | KTSPBFREDO MINUS FORMAT PAGETABLE DATABLOCK ktspbredo
     | KTSPSFREDO MINUS FORMAT LEVEL HEX BITMAP BLOCK parent_dba startdba number incn
     | KTSPFFREDO MINUS FORMAT LEVEL HEX BITMAP BLOCK 
              startdba_of_the_range number_of_blocks
              nbits inst nmrk parent_dba offset             
+    | ADD L HEX S TO L HEX fdba len offset
+    | hint_dba
     ;
+
+bitmap_redo_options
+    :  REDO bitmap_redo_op
+    ;
+
 
 nbits
     : NBITS ':' nbits_value
@@ -325,10 +435,12 @@ bitmap_redo_op
     | TO CHANGE_RAW OPCODE bitmap_opcode
     | TO DELETE RANGE length
     | TO ADD RANGE bdba length
+    | TO SET FSLASH CLEAR HWM FLAG bitmap_opcode
     ;
 
 bitmap_opcode
     : OPCODE ':' bitmap_opcode_value locking_transaction
+    | OPCODE ':' bitmap_opcode_value FLAG ':' HEX
     ;
 
 bitmap_opcode_value
@@ -421,17 +533,41 @@ bi_tran
     : TRANS LAYER B DOT I DOT
     ;
 
+create_load_index
+    : CREATE FSLASH LOAD INDEX create_load_index_info
+    ;
+
+create_load_index_info
+    :  create_load_scn_fsc+
+       ARRAY OF HEX KD_OFF
+       dump_memory
+       kd_off_info+
+       ;
+
+create_load_scn_fsc
+     : HEX 
+       HEX DOT HEX DOT HEX 
+       HEX DOT HEX DOT HEX 
+       (C|MINUS) (MINUS) (MINUS) (MINUS)
+       HEX (SCN|FSC) HEX DOT? HEX? 
+       ;
+
+kd_off_info
+       : LPAREN HEX RPAREN ':' HEX+
+       ;       
 
 index_undo_info
    : INDEX UNDO FOR LEAF KEY OPERATIONS
    | INDEX GENERAL UNDO LPAREN BRANCH RPAREN OPERATIONS
+   | INDEX ROOT BLOCK REDO LPAREN KDXDLR RPAREN ':' create_load_index
    | INDEX REDO LPAREN KDXAIR RPAREN ':' APPLY XAT DO TO ITL HEX LPAREN COUNT EQUAL HEX RPAREN
    | INDEX REDO LPAREN KDXBIN RPAREN ':' INSERT BRANCH BLOCK ROW COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXBNE RPAREN ':' INITIALIZE BRANCH BLOCK COMMA COUNT EQUAL HEX 
    | INDEX REDO LPAREN KDXBPU RPAREN ':' PURGE BRANCH BLOCK ROW COMMA COUNT EQUAL HEX 
    | INDEX REDO LPAREN KDXIMA RPAREN ':' RESTORE BEFORE BLOCK IMAGE COMMA COUNT EQUAL HEX bi_tran
    | INDEX REDO LPAREN KDXIMA RPAREN ':' RESTORED BLOCK BEFORE IMAGE COMMA COUNT EQUAL HEX bi_tran
-   | INDEX REDO LPAREN KDXLEM RPAREN ':' LPAREN REDO RPAREN MAKE LEAF BLOCK EMPTY 
+   | INDEX REDO LPAREN KDXLCL RPAREN ':' CLEAR SPLIT FLAG COMMA COUNT EQUAL HEX
+   | INDEX REDO LPAREN KDXLEM RPAREN ':' LPAREN (REDO|UNDO) RPAREN MAKE LEAF BLOCK EMPTY 
    						 COMMA ITL EQUAL HEX COMMA COUNT EQUAL HEX
    | INDEX REDO LPAREN KDXLIN RPAREN ':' INSERT LEAF ROW
    | INDEX REDO LPAREN KDXLNE RPAREN ':' LPAREN COUNT EQUAL HEX RPAREN
@@ -440,7 +576,7 @@ index_undo_info
                                            INIT LEAF BLOCK BEING SPLIT init_leaf_block_being_split
    | INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
    | INDEX REDO LPAREN KDXLOK RPAREN ':' LOCK BLOCK COMMA COUNT EQUAL HEX
-   | INDEX REDO LPAREN KDXLPR RPAREN ':' LPAREN REDO RPAREN 
+   | INDEX REDO LPAREN KDXLPR RPAREN ':' LPAREN (REDO|UNDO) RPAREN 
 	SET (KDXLENXT
             |KDXLEPRV
 	    )	
@@ -503,7 +639,13 @@ split_itl_value
    ;
 
 lock_itl
-   : LOCK ITL HEX OPERATION EQUAL HEX COMMA PRE MINUS SPLIT
+   : LOCK ITL HEX OPERATION EQUAL HEX COMMA lock_itl_operation
+   ;
+
+lock_itl_operation
+   : ( PRE MINUS SPLIT
+     | PURGE COMMITTED SPLIT MINUS HOLES FSLASH ADVANCED COMPRESSION HIGH BLOCK OP
+     )
    ;
 
 seghdr_dba
@@ -706,6 +848,14 @@ split_length_value
    : HEX
    ;
 
+redo_to_change_opcode
+   : REDO TO CHANGE_RAW OPCODE
+      opcode_to_change
+   ;
+
+opcode_to_change
+   : OPCODE ':' HEX locking_transaction
+   ;
 
 ktsbi_redo
    : KTSBI REDO MINUS REDO OPERATION ON BITMAP INDEX BLOCK resettok bit_no
@@ -744,6 +894,13 @@ cfl_value
     : HEX
     ;
 
+csc
+    : CSC ':' csc_value
+    ;
+
+csc_value
+    : HEX
+    ; 
 
 cscn
     : CSCN ':' cscn_value
@@ -1259,6 +1416,7 @@ kdi_data_load
 undo_info
     : kteopu_undo
     | ktsl_undo
+    | segment_header_undo
     ; 
 
 
@@ -1406,6 +1564,8 @@ fwd_value
               |A
               |B
               |C
+              |D
+              |E
               |F
               )
     ;
@@ -1419,6 +1579,8 @@ bkw_value
               |A
               |B
               |C
+              |D
+              |E
               |F
               )
     ;
@@ -1462,7 +1624,15 @@ nk
     ;
 
 nk_value
-    : HEX DOT HEX
+    : HEX DOT (HEX
+              | A
+              | B
+              | C
+              | D
+              | E
+              | F
+              )
+
     ;
 
 pk 
@@ -1470,7 +1640,14 @@ pk
     ;
 
 pk_value
-    : HEX DOT HEX
+    : HEX DOT (HEX
+              | A
+              | B
+              | C
+              | D
+              | E
+              | F
+              )
     ;
 
 comc
@@ -1556,6 +1733,8 @@ hrid_value
              |A
              |B
              |C
+             |D
+             |E
              |F
              )
    ;
@@ -1570,6 +1749,8 @@ nrid_value
              |A
              |B
              |C
+             |D
+             |E
              |F
              )
    ;
@@ -1672,7 +1853,7 @@ tabn_slot
    ;
 
 tabn_slot_value
-   : HEX '('? HEX? ')'?
+   : HEX LPAREN? HEX? ')'?
    ;
 
 tabn_slot_to
@@ -1732,7 +1913,7 @@ size
    ;
 
 size_value
-   : '-'? HEX
+   : MINUS? HEX
    ; 
 
 kdo_itli
@@ -1867,11 +2048,11 @@ kdxdumpcompdo
    ;
 
 kdxlup_info
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info number_of_keys? keydata? kdxdumpcompdo 
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH MINUS MINUS FSLASH MINUS MINUS leaf_itl_info number_of_keys? keydata? kdxdumpcompdo 
    ;
 
 purge_leaf
-   : UNDO ':' HEX SINGLE SPLIT FLAG FSLASH CLEAR FSLASH '-' '-' FSLASH '-' '-' FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info? 
+   : UNDO ':' HEX SINGLE SPLIT FLAG FSLASH CLEAR FSLASH MINUS MINUS FSLASH MINUS MINUS FSLASH MINUS MINUS FSLASH MINUS MINUS leaf_itl_info? 
    ;
 
 leaf_itl_info
@@ -1879,16 +2060,16 @@ leaf_itl_info
    ;
 
 single_array_redo_info
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-'
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH MINUS MINUS FSLASH MINUS MINUS 
    ;
 
 insert_leaf
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' leaf_itl_info number_of_keys? leaf_slots? insert_key  each_key_size_is? keydata?
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH MINUS MINUS FSLASH MINUS MINUS leaf_itl_info number_of_keys? leaf_slots? insert_key  each_key_size_is? keydata?
 
    ;
 
 delete_leaf
-   : REDO ':' HEX (SINGLE|ARRAY) FSLASH '-' '-' FSLASH '-' '-' itl COMMA sno COMMA ROW SIZE HEX number_of_keys? leaf_slots?
+   : REDO ':' HEX (SINGLE|ARRAY) FSLASH MINUS MINUS FSLASH MINUS MINUS itl COMMA sno COMMA ROW SIZE HEX number_of_keys? leaf_slots?
    ;
 
 number_of_keys
@@ -1944,6 +2125,7 @@ dump_kd_info
    | dump_kdilk kdxlre kdx_key kdx_bitmap?
    | dump_kdilk kdxlre number_of_keys key_sizes kdx_key selflock kdx_bitmap
    | dump_kdilk kdxlde kdx_key keydata?
+   | dump_kdilk kdxlin kdx_key keydata?
    | dump_kdilk kdxlup kdx_key keydata?
    | dump_kdige 
 	(restore_block_before_image
@@ -1993,6 +2175,10 @@ block_dba_value
    : HEX
    ;
 
+kdxlin
+   : LPAREN KDXLIN RPAREN ':' INSERT LEAF ROW
+   ;
+
 kdxlup
    : LPAREN KDXLUP RPAREN ':' UPDATE KEYDATA IN ROW
    ;
@@ -2001,7 +2187,6 @@ kdxlde
    : INDEX REDO LPAREN KDXLDE RPAREN ':' DELETE LEAF ROW
    | LPAREN KDXLDE RPAREN ':' MARK LEAF ROW DELETED
    ;
-
 
 kdxlpu
    : LPAREN KDXLPU RPAREN ':' PURGE LEAF ROW
@@ -2061,7 +2246,7 @@ ktb_redo_op1
    ;
 
 ktb_redo_compat_bit
-   : COMPAT BIT ':' compat_bit_value '(' POST MINUS HEX ')'
+   : COMPAT BIT ':' compat_bit_value LPAREN POST MINUS HEX ')'
    ;
 
 compat_bit_value
@@ -2143,9 +2328,7 @@ itl_list_scn_or_fsc_indicator
    ;
 
 itl_list_scn_or_fsc
-   : scn_value
-   | fsc_value
-   ;
+   :  fsc_value ;
 
 fsc_value
    : scn_value
@@ -2387,7 +2570,7 @@ addaxt
     ;
 
 extent_map_redo_add
-    : ADD ':' dba len at_offset (addret|addaxt) setstat updxnt
+    : ADD ':' dba len at_offset (addret|addaxt) setstat updxnt?
     ;
      
 extent_map_redo_delete
@@ -2616,7 +2799,7 @@ flg
 
 flg_value
     : HEX
-    | '(' OPT EQUAL HEX WHR EQUAL HEX ')'
+    | LPAREN OPT EQUAL HEX WHR EQUAL HEX ')'
     ;
 
 con_id
@@ -2708,7 +2891,7 @@ fdba_value
     ;
 
 datafile_resize_marker:
-    DATAFILE RESIZE MARKER '-' file old_size new_size
+    DATAFILE RESIZE MARKER MINUS file old_size new_size
     ;
 
 file:
@@ -2902,6 +3085,375 @@ lvec_size
    : LVEC SIZE HEX
    ;
 
+direct_block_loader_redo
+   : DIRECT LOADER BLOCK REDO ENTRY 
+      block_header_dump
+       ( data_block_dump
+       | leaf_block_dump
+       )
+
+   ;
+
+block_header_dump
+   : BLOCK HEADER DUMP ':' block_header_dump_value
+      OBJECT ID ON BLOCK '?' (Y|N)?
+      seg_obj csc itc block_hdr_flg block_hdr_typ  
+       brn bdba ver my_opc inc exflg
+       itl_list bdba?
+   ;  
+
+my_opc
+   : OPC ':' HEX
+   ;
+
+leaf_block_dump
+   : LEAF BLOCK DUMP
+      data_block_underline
+      header_address
+      kdxcolev
+      kdxcolev_flags
+      kdxcolok
+      kdxcoopc
+      kdxconco
+      kdxcosdc
+      kdxconro
+      kdxcofbo
+      kdxcofeo
+      kdxcoavs
+      kdxlespl
+      kdxlende
+      kdxlenxt
+      kdxleprv
+      kdxledsz
+      kdxlebksz
+      leaf_row+
+      five_minus END_OF_LEAF_BLOCK_LOGICAL_DUMP five_minus
+      five_minus END_OF_LEAF_BLOCK_DUMP five_minus
+      dump_memory
+      ;
+
+five_minus
+      : MINUS MINUS MINUS MINUS MINUS
+      ;
+
+
+leaf_row
+      : ROW POUND HEX '[' HEX ']' 
+          FLAG ':' (MINUS) (MINUS) (MINUS) (MINUS) (MINUS) (MINUS) (MINUS)
+          COMMA
+          lock COMMA LEN EQUAL HEX
+          leaf_row_entry+
+      ;     
+
+leaf_row_entry
+   : COL HEX ';' LEN HEX ';' LPAREN HEX RPAREN ':' HEX+
+   ;
+
+header_address
+   : HEADER ADDRESS HEX EQUAL HEX
+   ;
+
+kdxcolok
+   : KDXCOLOK HEX
+   ;
+
+kdxcoopc
+   : KDXCOOPC HEX ':' OPCODE EQUAL HEX ':' iot_flags IS CONVERTED EQUAL (Y|N)
+   ;
+
+iot_flags
+   : IOT FLAGS EQUAL (MINUS) (MINUS) (MINUS)
+   ;
+
+kdxconco
+   : KDXCONCO HEX
+   ;
+
+
+kdxcosdc
+   : KDXCOSDC HEX
+   ;
+
+kdxconro
+   : KDXCONRO HEX
+   ;
+
+kdxcofbo
+   : KDXCOFBO HEX EQUAL HEX
+   ;
+
+kdxcofeo
+   : KDXCOFEO HEX EQUAL HEX
+   ;
+
+kdxcoavs
+   : KDXCOAVS HEX
+   ;
+
+kdxlespl
+   : KDXLESPL HEX
+   ;
+
+kdxlende
+   : KDXLENDE HEX
+   ;
+
+kdxlenxt
+   : KDXLENXT HEX EQUAL HEX
+   ;
+
+kdxleprv
+   : KDXLEPRV HEX EQUAL HEX
+   ;
+
+kdxledsz
+   : KDXLEDSZ HEX
+   ;
+
+kdxlebksz
+   : KDXLEBKSZ HEX
+   ;
+
+
+
+kdxcolev_flags
+   : KDXCOLEV FLAGS EQUAL (MINUS) (MINUS) (MINUS)
+   ;
+
+kdxcolev
+   : KDXCOLEV kdxcolev_value
+   ;
+
+kdxcolev_value
+   : HEX
+   ;
+
+
+   
+data_block_dump
+   : DATA_BLOCK_DUMP COMMA DATA HEADER AT HEX
+     data_block_underline
+     tsiz hsiz pbl block_dump_flag
+     ntab_equal nrow_equal
+     frre fsbo fseo avsp tosp 
+     table_directory
+     row_directory
+     block_row_dump
+   ;
+
+
+
+data_block_underline
+   : EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL EQUAL 
+   ;
+
+block_row_dump
+   : BLOCK_ROW_DUMP ':' block_row+ end_of_block_dump
+   ;
+
+block_row
+   : TAB block_tab_info COMMA ROW block_row_info COMMA row_piece_offset
+       tl_info  many_cols 
+   ;
+
+block_row_info
+   : HEX
+   ;
+
+end_of_block_dump
+   : END_OF_BLOCK_DUMP dump_memory
+   ;
+
+row_piece_offset
+   : AT_SIGN HEX
+   ;
+
+block_tab_info
+   : HEX
+   ;
+
+offs
+   : OFFS EQUAL offs_value
+   ;
+
+offs_value
+   : HEX
+   ;
+
+table_directory
+   : table_directory_entry+
+   ;
+
+table_directory_entry
+   : HEX ':' PTI '[' HEX ']' nrow_equal offs
+   ;
+
+row_directory
+   : row_directory_entry+
+   ;
+
+row_directory_slot
+   : HEX
+   ;
+
+row_directory_entry
+   : HEX ':' PRI '[' row_directory_slot ']' offs
+   ;
+
+ntab_equal
+   : NTAB EQUAL ntab_equal_value
+   ;
+
+ntab_equal_value
+   : HEX
+   ;
+
+nrow_equal
+   : NROW EQUAL nrow_equal_value
+   ;
+
+nrow_equal_value
+   : HEX
+   ;
+
+tosp
+   : TOSP EQUAL tosp_value
+   ;
+
+tosp_value
+   : HEX
+   ;
+
+avsp
+   : AVSP EQUAL avsp_value
+   ;
+
+avsp_value
+   : HEX
+   ;
+
+fseo
+   : FSEO EQUAL fseo_value
+   ;
+
+fseo_value
+   : HEX
+   ;
+
+fsbo
+   : FSBO EQUAL fsbo_value
+   ;
+
+fsbo_value
+   : HEX
+   ;
+
+
+frre
+   : FRRE EQUAL frre_value
+   ;
+
+frre_value
+   : (MINUS)? HEX
+   ;
+
+
+ntab
+   : NTAB ':' ntab_values
+   ;
+
+ntab_values
+   : HEX
+   ;
+
+block_dump_flag
+   : FLAG EQUAL block_dump_flag_value
+   ;
+
+block_dump_flag_value
+   : (MINUS) (MINUS) (MINUS) (MINUS) (MINUS) (MINUS) (MINUS) (MINUS)
+   ;
+
+tsiz
+   : TSIZ ':' tsiz_value
+   ;
+
+tsiz_value
+   : HEX
+   ;
+
+hsiz
+   : HSIZ ':' hsiz_value
+   ;
+
+hsiz_value
+   : HEX
+   ;
+
+pbl:
+   PBL ':' pbl_value
+   ;
+
+pbl_value
+   : HEX HEX
+   ;
+
+exflg
+   : EXFLG ':' exflg_value
+   ;
+
+exflg_value
+   : HEX
+   ;
+
+inc
+   : INC ':' inc_value
+   ;
+
+inc_value
+   : HEX
+   ;
+
+block_hdr_flg
+   : FLG ':' block_hdr_flg_value
+   ;
+
+block_hdr_flg_value
+   : E
+   ;
+
+block_hdr_typ
+   : TYP ':' block_hdr_typ_value
+   ;
+
+block_hdr_typ_value
+   : HEX MINUS DATA
+   | HEX MINUS INDEX
+   ;
+
+brn
+   : BRN ':' brn_value
+   ;
+
+brn_value
+   : HEX
+   ;
+
+seg_obj
+   : SEG FSLASH OBJ ':' seg_obj_value
+   ;
+
+seg_obj_value
+   : HEX
+   ;
+
+
+block_header_dump_value
+   : HEX
+   ;
+
+
+
 new_block_has_rows
    : NEW BLOCK HAS HEX ROWS
    ;
@@ -2922,11 +3474,12 @@ auto_clause
    : AUTO MINUS PREFIX KDXLNCOL EQUAL MINUS HEX cu_itl lvec_size
    ;
 dump_memory
-   : DUMP OF MEMORY FROM HEX TO HEX memory_info+
+   : DUMP OF MEMORY FROM2 HEX TO HEX memory_info*
    ;
 
 memory_info
    : memory_address memory_line memory_display
+   | REPEAT_X_TIMES
    ;
 
 memory_display
@@ -2950,6 +3503,8 @@ ktb_redo_flg_values
     ;
 
 fb_flag_values
-    : (K|MINUS) (C|MINUS) (H|MINUS) MINUS (F|MINUS) (L|MINUS) MINUS MINUS
+    : (MINUS) (C|MINUS) (H|MINUS) MINUS (F|MINUS) (L|MINUS) MINUS MINUS
+    | KC  (H|MINUS) MINUS (F|MINUS) (L|MINUS) MINUS MINUS
+    | KMINUS  (H|MINUS) MINUS (F|MINUS) (L|MINUS) MINUS MINUS
     ;
 
