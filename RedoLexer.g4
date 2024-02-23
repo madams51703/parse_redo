@@ -365,6 +365,7 @@ LCK:                   'LCK';
 LFDBA:                 'LFDBA';
 LINK:                  'LINK';
 LUPD_LLIST:            'LUPD_LLIST';
+LUPD_UNLIST:           'LUPD_UNLIST';
 LUPD_UNLBLK:           'LUPD_UNLBLK';
 LVEC:                  'LVEC';
 UNLINK:                'UNLINK';

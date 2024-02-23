@@ -1036,7 +1036,11 @@ ktecush_redo
     ;    
 
 ktsfrgrp_redo
-    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':'  ktsfrgrp_opcode+ ktsfrgrp_slot ktsfrgrp_flag ccnt head tail
+    : KTSFRGRP LPAREN FGB FSLASH SHDR MODIFY FREELIST RPAREN REDO ':' ktsfrgrp_opcode_info+
+    ;
+
+ktsfrgrp_opcode_info
+    :ktsfrgrp_opcode+ ktsfrgrp_slot ktsfrgrp_flag ccnt head tail
     ;
 
 head
@@ -1082,6 +1086,7 @@ ktsfrgrp_opcode
 ktsfrgrp_opcode_value
     : LUPD_UNLBLK LPAREN UNLINK BLOCK RPAREN
     | LUPD_LLIST LPAREN LINK A LIST RPAREN
+    | LUPD_UNLIST LPAREN UNLINK A LIST RPAREN
     | HWMMV LPAREN MOVE HWM RPAREN nbk
     ;
 
@@ -2123,7 +2128,7 @@ keydata_value
 dump_kd_info
    : dump_kdilk kdxlpu number_of_keys? key_sizes? kdx_key selflock? kdx_bitmap?
    | dump_kdilk kdxlre kdx_key kdx_bitmap?
-   | dump_kdilk kdxlre number_of_keys key_sizes kdx_key selflock kdx_bitmap
+   | dump_kdilk kdxlre number_of_keys key_sizes kdx_key kdx_bitmap? selflock kdx_bitmap?
    | dump_kdilk kdxlde kdx_key keydata?
    | dump_kdilk kdxlin kdx_key keydata?
    | dump_kdilk kdxlup kdx_key keydata?
@@ -2496,7 +2501,7 @@ extent_map_redo
     : REDO OPERATION ON EXTENT MAP (extent_map_redo_sethwm
                                    |extent_map_redo_add
                                    |extent_map_redo_delete
-				   )
+                                   |extent_map_redo_setstat               			   )
     ;
 
 at_offset
@@ -2569,8 +2574,12 @@ addaxt
     : ADDAXT ':' offset fdba bdba
     ;
 
+extent_map_redo_setstat
+    : setstat
+    ;
+
 extent_map_redo_add
-    : ADD ':' dba len at_offset (addret|addaxt) setstat updxnt?
+    : ADD ':' dba len at_offset (addret|addaxt) setstat? updxnt?
     ;
      
 extent_map_redo_delete
