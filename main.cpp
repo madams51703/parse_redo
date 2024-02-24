@@ -19,11 +19,14 @@ int main(int argc, char *argv[]) {
         char raw_redo_file[5000]="NONE";
         char input_file[5000]="/dev/stdin";
         int enable_raw_redo=0;
-
+        int print_option=0;
+        int column_of_interest=-1;
 const struct option longopts[] =
   {
+    {"show-all-changes",      required_argument,        0, 's'},
     {"raw-redo",      required_argument,        0, 'r'},
     {"file",     required_argument,  0, 'f'},
+    {"column-of-interest",     required_argument,  0, 'c'},
     {0,0,0,0},
   };
 
@@ -35,10 +38,14 @@ const struct option longopts[] =
 
   while(iarg != -1)
   {
-    iarg = getopt_long(argc, argv, "f:r:", longopts, &index);
+    iarg = getopt_long(argc, argv, "c:f:r:s:", longopts, &index);
 
     switch (iarg)
     {
+      case 'c':
+        column_of_interest=atoi(optarg);
+        break;
+
       case 'r':
         enable_raw_redo=1;
 	strcpy(raw_redo_file,optarg);
@@ -46,6 +53,17 @@ const struct option longopts[] =
 
       case 'f':
 	strcpy(input_file,optarg);
+        break;
+
+      case 's':
+        if (strcmp(optarg,"DISPLAY_ALL") == 0 )
+        {
+		print_option=1;
+        }
+        else if ( strcmp(optarg,"DIRECT_LOADER") == 0)
+        {
+		print_option=2;
+	}
         break;
 
     }
@@ -72,6 +90,8 @@ const struct option longopts[] =
  		RedoWalker * listener = new RedoWalker();		
                 strcpy(listener->raw_redo_log_name , raw_redo_file);
                 listener->enable_raw_redo = enable_raw_redo;
+                listener->print_option = print_option;
+               	listener->column_of_interest = column_of_interest;
   		walker.walk(listener, redo_file);
 		RedoParserFile.close();
 	}
